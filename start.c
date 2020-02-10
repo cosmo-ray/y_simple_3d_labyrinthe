@@ -130,7 +130,7 @@ static void col_checker(int px, int py, int tpx, int tpy,
 	int r = yuiLinesRectIntersect(px, py, tpx, tpy, case_x * 1000,
 				      case_y * 1000, 999, 999, 0, 0, &t);
 
-	if (r && r < *wall_dist) {
+	if (r && (!(*wall_dist) || r < *wall_dist)) {
 		*wall_dist = r;
 		*ot = t;
 	}
@@ -151,42 +151,29 @@ static void print_walls(Entity *rc)
 	double rad_tick = (M_PI_4) / wid_w;
 	double cur_rad = pj_rad - (M_PI_4 / 2);
 
-	// range: -250, -750; 0, -1000; 250, 750
-	/* printf("PY: %d\n", py); */
-	/* printf("swd: %d\n", strait_wall_dist); */
 	ywCanvasClear(rc);
+	/* For each rays */
 	for (int i = 0; i < wid_w; ++i) {
-		int wall_dist = py - pyc * 1000;
+		int wall_dist = 0;
 		int tpx = px;
 		int tpy = py;
-		int x_dir = 500 * cos(cur_rad) * -1;
-		int y_dir = 500 * sin(cur_rad) * -1;
-		/* int x_dist = px - pxc * 1000; */
-		/* int y_dist = py - pyc * 1000; */
+		int x_dir = 1000 * cos(cur_rad) * -1;
+		int y_dir = 1000 * sin(cur_rad) * -1;
 
-		/* printf("%d %d %f\n", x_dir, y_dir, rad_tick); */
 		for (;tpy > 0 && tpx > 0 &&
 			     tpx < map_w * 1000 &&
 			     tpy < map_h * 1000;
 		     tpy += y_dir, tpx += x_dir) {
 			int case_x = tpx / 1000;
 			int case_y = tpy / 1000;
-
-			if (!get_case(case_x, case_y))
-				continue;
-			YE_NEW(Array, gc);
 			int it;
-			int it2;
-			int col_x = 0;
-			int col_y = 0;
 
-			wall_dist = yuiLinesRectIntersect(px, py, tpx, tpy,
-							  case_x * 1000,
-							  case_y * 1000,
-							  999, 999,
-							  &col_x, &col_y, &it);
+			/* moddie case */
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
 			case_y++;
 
+			/* top cases */
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
 			case_x++;
@@ -195,8 +182,9 @@ static void print_walls(Entity *rc)
 			case_x-=2;
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
-			case_y -= 2;
 
+			/* bottom cases */
+			case_y -= 2;
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
 			case_x++;
@@ -205,6 +193,8 @@ static void print_walls(Entity *rc)
 			case_x++;
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
+
+			/* middle again */
 			case_y++;
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
@@ -212,16 +202,9 @@ static void print_walls(Entity *rc)
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
 
-			/* case_x++; */
-			/* case_y++; */
-
-			/* printf("%d - %d(%d,%d,%s): - %d %d - %d %d - %d %d\n", */
-			/*        i, wall_dist, */
-			/*        case_x, case_y, */
-			/*        yLineRectIntersectStr[it], */
-			/*        px, py, tpx, tpy, */
-			/*        col_x, col_y); */
-			break;
+			if (wall_dist) {
+				break;
+			}
 		}
 		int threshold = 40 * wall_dist / 1000;
 
