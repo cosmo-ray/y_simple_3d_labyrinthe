@@ -22,11 +22,14 @@
 
 #define START_X 4500
 #define START_Y 4500
-/* look up, player have a view at 90 degree (PI / 2) */
-#define START_RADIANS M_PI_2 - M_PI_4 /* should be 3 pi / 4 */
+/* look up, player have a view at 40 degree (PI / 2) */
+#define START_RADIANS M_PI_2
+#define RAD_TURN_VAL (M_PI_4 / 8)
 #define VIEW_DEEP 5
 #define CASE_SUB_CASE 1000
 #define CASE_HEIGHT 40
+
+double pj_rad = START_RADIANS;
 
 /* x = x0 + r*cos(t) */
 /* y = y0 + r*sin(t) */
@@ -44,9 +47,9 @@ uint32_t map[] = {
 	-1,-1,-1, 0, 0,-1,-1,-1,
 	-1,-1,-1,-1, 0,-1,-1,-1,
 	-1,-1,-1, 0, 0, 0, 0,-1,
-	-1,-1,-1, 0,-1,-1,-1,-1,
-	00, 0, 0, 0,-1,-1,-1,-1,
-	-1,-1,-1,-1,-1,-1,-1,-1,
+	-1,-1,-1, 0,-1,-1, 0,-1,
+	-1, 0, 0, 0,-1,-1, 0,-1,
+	-1,-1,-1,-1, 0, 0, 0,-1,
 	-1,-1,-1,-1,-1,-1,-1,-1
 };
 
@@ -65,23 +68,72 @@ static int pcy(Entity *rc)
 	return yeGetIntAt(rc, "py");
 }
 
+static void mvpj(Entity *rc, int xadd, int yadd)
+{
+	int x = yuiTurnX(xadd, yadd, pj_rad - M_PI_2);
+	int y = yuiTurnY(xadd, yadd, pj_rad - M_PI_2);
+
+	if (!get_case((pcx(rc)  + x) / 1000, pcy(rc) / 1000))
+		yeAddAt(rc, "px", x);
+	if (!get_case(pcx(rc) / 1000, (pcy(rc) + y) / 1000))
+		yeAddAt(rc, "py", y);
+}
+
 void *rc_action(int nbArgs, void **args)
 {
 	Entity *rc = args[0];
 	Entity *events = args[1];
 	int action = 0;
+	int xadd = 0, yadd = 0;
+
+	if (yevIsKeyDown(events, 'q')) {
+		pj_rad -= RAD_TURN_VAL;
+		action = 1;
+	} else if (yevIsKeyDown(events, 'e')) {
+		pj_rad += RAD_TURN_VAL;
+		action = 1;
+	}
+	/* trigo circle is between M_PI and -M_PI */
+	if (pj_rad > M_PI) {
+		pj_rad -= 2 * M_PI;
+	} else if (pj_rad < -M_PI) {
+		pj_rad += 2 * M_PI;
+	}
 
 	if (yevIsKeyDown(events, Y_UP_KEY)) {
-		if (!get_case(pcx(rc) / 1000, (pcy(rc) - 100) / 1000))
-			yeAddAt(rc, "py", -100);
+		yadd = -100;
 		action = 1;
 	} else if (yevIsKeyDown(events, Y_DOWN_KEY)) {
-		if (!get_case(pcx(rc) / 1000, (pcy(rc) + 100) / 1000))
-			yeAddAt(rc, "py", 100);
+		yadd = 100;
+		action = 1;
+	}
+	if (yevIsKeyDown(events, Y_LEFT_KEY)) {
+		xadd = -100;
+		action = 1;
+	} else if (yevIsKeyDown(events, Y_RIGHT_KEY)) {
+		xadd = 100;
 		action = 1;
 	}
 	print_walls(rc);
+	if (action)
+		mvpj(rc, xadd, yadd);
 	return action == 1 ? (void *)ACTION : 0;
+}
+
+static void col_checker(int px, int py, int tpx, int tpy,
+			int case_x, int case_y, int *ot, int *wall_dist)
+{
+	int t;
+	if (!get_case(case_x, case_y))
+		return;
+
+	int r = yuiLinesRectIntersect(px, py, tpx, tpy, case_x * 1000,
+				      case_y * 1000, 999, 999, 0, 0, &t);
+
+	if (r && r < *wall_dist) {
+		*wall_dist = r;
+		*ot = t;
+	}
 }
 
 static void print_walls(Entity *rc)
@@ -96,8 +148,8 @@ static void print_walls(Entity *rc)
 	int pxc = px / 1000;
 	Entity *walls = yeGet(rc, "walls");
 	/* hiw many rad per pixiel */
-	double rad_tick = M_PI_2 / wid_w;
-	double cur_rad = START_RADIANS;
+	double rad_tick = (M_PI_4) / wid_w;
+	double cur_rad = pj_rad - (M_PI_4 / 2);
 
 	// range: -250, -750; 0, -1000; 250, 750
 	/* printf("PY: %d\n", py); */
@@ -120,53 +172,56 @@ static void print_walls(Entity *rc)
 			int case_x = tpx / 1000;
 			int case_y = tpy / 1000;
 
-			if (get_case(case_x, case_y)) {
-				YE_NEW(Array, gc);
-				int r;
-				int col_x = 0;
-				int col_y = 0;
+			if (!get_case(case_x, case_y))
+				continue;
+			YE_NEW(Array, gc);
+			int it;
+			int it2;
+			int col_x = 0;
+			int col_y = 0;
 
-				wall_dist = yuiLinesRectIntersect(px, py, tpx, tpy,
-								  case_x * 1000,
-								  case_y * 1000,
-								  999, 999,
-								  &col_x, &col_y);
-				case_y++;
-				r = yuiLinesRectIntersect(px, py, tpx, tpy,
+			wall_dist = yuiLinesRectIntersect(px, py, tpx, tpy,
 							  case_x * 1000,
 							  case_y * 1000,
 							  999, 999,
-							  &col_x, &col_y);
-				if (r && r < wall_dist)
-					wall_dist = r;
-				case_y--;
-				case_x++;
-				r = yuiLinesRectIntersect(px, py, tpx, tpy,
-							  case_x * 1000,
-							  case_y * 1000,
-							  999, 999,
-							  &col_x, &col_y);
-				if (r && r < wall_dist)
-					wall_dist = r;
+							  &col_x, &col_y, &it);
+			case_y++;
 
-				case_x -= 2;
-				r = yuiLinesRectIntersect(px, py, tpx, tpy,
-							  case_x * 1000,
-							  case_y * 1000,
-							  999, 999,
-							  &col_x, &col_y);
-				if (r && r < wall_dist)
-					wall_dist = r;
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
+			case_x++;
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
+			case_x-=2;
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
+			case_y -= 2;
 
-				/* case_x++; */
-				/* case_y++; */
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
+			case_x++;
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
+			case_x++;
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
+			case_y++;
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
+			case_x -= 2;
+			col_checker(px, py, tpx, tpy, case_x, case_y,
+				    &it, &wall_dist);
 
-				printf("%d - %d(%d,%d): - %d %d - %d %d - %d %d\n",
-				       i, r,
-				       case_x, case_y, px, py, tpx, tpy,
-				       col_x, col_y);
-				break;
-			}
+			/* case_x++; */
+			/* case_y++; */
+
+			/* printf("%d - %d(%d,%d,%s): - %d %d - %d %d - %d %d\n", */
+			/*        i, wall_dist, */
+			/*        case_x, case_y, */
+			/*        yLineRectIntersectStr[it], */
+			/*        px, py, tpx, tpy, */
+			/*        col_x, col_y); */
+			break;
 		}
 		int threshold = 40 * wall_dist / 1000;
 
