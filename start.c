@@ -23,6 +23,7 @@
 #define START_X 4500
 #define START_Y 4500
 /* look up, player have a view at 40 degree (PI / 2) */
+#define FIELD_OF_VIEW 0.6981
 #define START_RADIANS M_PI_2
 #define RAD_TURN_VAL (M_PI_4 / 8)
 #define VIEW_DEEP 5
@@ -73,7 +74,7 @@ static void mvpj(Entity *rc, int xadd, int yadd)
 	int x = yuiTurnX(xadd, yadd, pj_rad - M_PI_2);
 	int y = yuiTurnY(xadd, yadd, pj_rad - M_PI_2);
 
-	if (!get_case((pcx(rc)  + x) / 1000, pcy(rc) / 1000))
+	if (!get_case((pcx(rc) + x) / 1000, pcy(rc) / 1000))
 		yeAddAt(rc, "px", x);
 	if (!get_case(pcx(rc) / 1000, (pcy(rc) + y) / 1000))
 		yeAddAt(rc, "py", y);
@@ -124,15 +125,20 @@ static void col_checker(int px, int py, int tpx, int tpy,
 			int case_x, int case_y, int *ot, int *wall_dist)
 {
 	int t;
+	int x, y;
+
 	if (!get_case(case_x, case_y))
 		return;
 
 	int r = yuiLinesRectIntersect(px, py, tpx, tpy, case_x * 1000,
-				      case_y * 1000, 999, 999, 0, 0, &t);
+				      case_y * 1000, 999, 999, &x, &y, &t);
 
-	if (r && (!(*wall_dist) || r < *wall_dist)) {
-		*wall_dist = r;
-		*ot = t;
+	if (r) {
+		/* r = yuiPointsDist(px, py, px + (x - px) / 2, y); */
+		if (!(*wall_dist) || r < *wall_dist) {
+			*wall_dist = r;
+			*ot = t;
+		}
 	}
 }
 
@@ -148,8 +154,8 @@ static void print_walls(Entity *rc)
 	int pxc = px / 1000;
 	Entity *walls = yeGet(rc, "walls");
 	/* hiw many rad per pixiel */
-	double rad_tick = (M_PI_4) / wid_w;
-	double cur_rad = pj_rad - (M_PI_4 / 2);
+	double r0 = pj_rad - (FIELD_OF_VIEW / 2);
+	double cur_rad = r0;
 
 	ywCanvasClear(rc);
 	/* For each rays */
@@ -206,13 +212,14 @@ static void print_walls(Entity *rc)
 				break;
 			}
 		}
-		int threshold = 40 * wall_dist / 1000;
+		wall_dist -= 500;
+		int threshold = 50 * wall_dist / 1000;
 
 		front_wall = ywCanvasNewRectangle(rc, i, threshold, 1,
 						  wid_h - (threshold * 2),
 						  "rgba: 20 20 20 255");
 		yePushAt(walls, front_wall, i);
-		cur_rad += rad_tick;
+		cur_rad = r0 + FIELD_OF_VIEW * i / wid_h;
 	}
 	/* exit(); */
 }
