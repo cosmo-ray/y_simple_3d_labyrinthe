@@ -22,20 +22,13 @@
 
 #define START_X 4500
 #define START_Y 4500
-/* look up, player have a view at 40 degree (PI / 2) */
+/* look up, player have a view at 40 degree */
 #define FIELD_OF_VIEW 0.6981
 #define START_RADIANS M_PI_2
 #define RAD_TURN_VAL (M_PI_4 / 8)
-#define VIEW_DEEP 5
-#define CASE_SUB_CASE 1000
 #define CASE_HEIGHT 40
 
 double pj_rad = START_RADIANS;
-
-/* x = x0 + r*cos(t) */
-/* y = y0 + r*sin(t) */
-
-/* ou (x0,y0) sont les coord du centre, r est le rayon, et t l'angle. */
 
 static void print_walls(Entity *rc);
 
@@ -44,9 +37,9 @@ int map_h = 9;
 
 uint32_t map[] = {
 	-1,-1,-1,-1,-1,-1,-1,-1,
-	-1,-1,-1,-1, 0,-1,-1,-1,
-	-1,-1,-1, 0, 0,-1,-1,-1,
-	-1,-1,-1,-1, 0,-1,-1,-1,
+	-1,-1,-1, 0, 0, 0,-1,-1,
+	-1,-1,-1, 0, 0, 0,-1,-1,
+	-1,-1,-1, 0, 0, 0,-1,-1,
 	-1,-1,-1, 0, 0, 0, 0,-1,
 	-1,-1,-1, 0,-1,-1, 0,-1,
 	-1, 0, 0, 0,-1,-1, 0,-1,
@@ -71,8 +64,10 @@ static int pcy(Entity *rc)
 
 static void mvpj(Entity *rc, int xadd, int yadd)
 {
-	int x = yuiTurnX(xadd, yadd, pj_rad - M_PI_2);
-	int y = yuiTurnY(xadd, yadd, pj_rad - M_PI_2);
+	int x = yuiTurnX(0, yadd, pj_rad - M_PI_2) -
+		yuiTurnX(0, xadd, pj_rad);
+	int y = yuiTurnY(0, yadd, pj_rad - M_PI_2) -
+		yuiTurnY(0, xadd, pj_rad);
 
 	if (!get_case((pcx(rc) + x) / 1000, pcy(rc) / 1000))
 		yeAddAt(rc, "px", x);
@@ -182,26 +177,15 @@ static void print_walls(Entity *rc)
 			/* top cases */
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
-			case_x++;
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
-			case_x-=2;
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
 
 			/* bottom cases */
 			case_y -= 2;
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
-			case_x++;
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
-			case_x++;
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
 
 			/* middle again */
 			case_y++;
+			case_x++;
 			col_checker(px, py, tpx, tpy, case_x, case_y,
 				    &it, &wall_dist);
 			case_x -= 2;
@@ -212,8 +196,9 @@ static void print_walls(Entity *rc)
 				break;
 			}
 		}
-		wall_dist -= 500;
-		int threshold = 50 * wall_dist / 1000;
+		/* printf("%d\n", wall_dist); */
+		/* wall_dist /=  10; */
+		int threshold = 30 * wall_dist / 1000;
 
 		front_wall = ywCanvasNewRectangle(rc, i, threshold, 1,
 						  wid_h - (threshold * 2),
@@ -227,10 +212,6 @@ static void print_walls(Entity *rc)
 void *rc_init(int nbArgs, void **args)
 {
 	Entity *rc = args[0];
-	/* double r = START_RADIANS */
-	/* int x = ox * cos(r) - oy * sin(r); */
-	/* int y = oy * cos(r) + ox * sin(r); */
-
 
 	ywSetTurnLengthOverwrite(-1);
 	printf("hey you !\n");
