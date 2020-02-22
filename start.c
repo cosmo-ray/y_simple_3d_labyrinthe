@@ -23,10 +23,11 @@
 #define START_X 4500
 #define START_Y 4500
 /* look up, player have a view at 40 degree */
-#define FIELD_OF_VIEW 0.6981
+#define FIELD_OF_VIEW 0.4981
+/* #define FIELD_OF_VIEW 0.6981 */
+/* #define FIELD_OF_VIEW M_PI_2 */
 #define START_RADIANS M_PI_2
 #define RAD_TURN_VAL (M_PI_4 / 8)
-#define CASE_HEIGHT 40
 
 double pj_rad = START_RADIANS;
 
@@ -113,7 +114,7 @@ void *rc_action(int nbArgs, void **args)
 	print_walls(rc);
 	if (action)
 		mvpj(rc, xadd, yadd);
-	return action == 1 ? (void *)ACTION : 0;
+	return (void *)ACTION;
 }
 
 static void col_checker(int px, int py, int tpx, int tpy,
@@ -125,8 +126,8 @@ static void col_checker(int px, int py, int tpx, int tpy,
 	if (!get_case(case_x, case_y))
 		return;
 
-	int r = yuiLinesRectIntersect(px, py, tpx, tpy, case_x * 1000,
-				      case_y * 1000, 999, 999, &x, &y, &t);
+	int r = yuiLinesRectIntersect(px, py, tpx, tpy, case_x * 1000 - 1,
+				      case_y * 1000 - 1, 1001, 1001, &x, &y, &t);
 
 	if (r) {
 		/* r = yuiPointsDist(px, py, px + (x - px) / 2, y); */
@@ -198,12 +199,22 @@ static void print_walls(Entity *rc)
 		}
 		/* printf("%d\n", wall_dist); */
 		/* wall_dist /=  10; */
-		int threshold = 30 * wall_dist / 1000;
+		/* wall_dist -= (abs(i - wid_w / 2)); */
+		/* int threshold = 30 * wall_dist / 1000; */
+		int threshold = wid_h * wall_dist / 8000 / 2;
 
-		front_wall = ywCanvasNewRectangle(rc, i, threshold, 1,
-						  wid_h - (threshold * 2),
-						  "rgba: 20 20 20 255");
-		yePushAt(walls, front_wall, i);
+		if (wall_dist < 300)
+			threshold = 0;
+		if (wall_dist < 1000)
+			threshold /= 3;
+		printf("wall d %d\n", wall_dist);
+		if (threshold < wid_h / 2) {
+			/* printf("%d - %d\n", threshold, wall_dist); */
+			front_wall = ywCanvasNewRectangle(rc, i, threshold, 1,
+							  wid_h - (threshold * 2),
+							  "rgba: 20 20 20 255");
+			yePushAt(walls, front_wall, i);
+		}
 		cur_rad = r0 + FIELD_OF_VIEW * i / wid_h;
 	}
 	/* exit(); */
