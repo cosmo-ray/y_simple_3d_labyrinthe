@@ -34,20 +34,10 @@ double pj_rad = START_RADIANS;
 
 static void print_walls(Entity *rc);
 
-int map_w = 8;
-int map_h = 9;
+int map_w;
+int map_h;
 
-uint32_t map[] = {
-	-1,-1,-1,-1,-1,-1,-1,-1,
-	-1, 0, 0, 0, 0, 0,-1,-1,
-	-1, 0,-1, 0, 0, 0,-1,-1,
-	-1, 0,-1, 0, 0, 0,-1,-1,
-	-1, 0,-1, 0, 0, 0, 0,-1,
-	-1,-1,-1, 0,-1,-1, 0,-1,
-	-1, 0, 0, 0,-1,-1, 0,-1,
-	-1,-1,-1,-1, 0, 0, 0,-1,
-	-1,-1,-1,-1,-1,-1,-1,-1
-};
+uint32_t map[2048];
 
 static int get_case(int x, int y)
 {
@@ -212,9 +202,41 @@ static void print_walls(Entity *rc)
 	}
 }
 
+#define FAIL(fmt...) do {				\
+		DPRINT_ERR(fmt);			\
+		return NULL;				\
+	} while (0);
+
 void *rc_init(int nbArgs, void **args)
 {
 	Entity *rc = args[0];
+	Entity *map_e = yeGet(rc, "map");
+	uint32_t *map_p = map;
+
+	if (!map_e)
+		FAIL("no map");
+
+	map_h = yeLen(map_e);
+	if (!map_h)
+		FAIL("incorect map");
+
+	map_w = yeLenAt(map_e, 0);
+
+	if (!map_w)
+		FAIL("incorect map W");
+
+	for (int i = 0; i < map_h; ++i) {
+		char *line = yeGetStringAt(map_e, i);
+
+		if (yeLenAt(map_e, i) != map_w)
+			FAIL("non equal map W");
+		for (char *tmp = line; *tmp; ++tmp) {
+			*map_p++ = *tmp == '.' ? 0 : -1;
+			printf("%d,", *tmp == '.' ? 0 : -1);
+		}
+		printf("\n");
+	}
+
 
 	ywSetTurnLengthOverwrite(-1);
 	printf("hey you !\n");
@@ -244,6 +266,17 @@ void *mod_init(int nbArg, void **args)
 		mod["window size"] = [800, 600];
 		mod.test_rc["<type>"] = "raycasting";
 		mod.test_rc.background = "rgba: 10 150 255 255";
+		mod.test_rc.map = [
+			"########",
+			"#.....##",
+			"#.#...##",
+			"#.#...##",
+			"#.#....#",
+			"###.##.#",
+			"#...##.#",
+			"####...#",
+			"########"
+			];
 		mod["window name"] = "RC";
 	}
 
