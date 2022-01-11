@@ -23,9 +23,10 @@
 #define START_X 4500
 #define START_Y 4500
 /* look up, player have a view at 40 degree */
-#define FIELD_OF_VIEW 0.4981
-/* #define FIELD_OF_VIEW 0.6981 */
+/* #define FIELD_OF_VIEW 0.4981 */
+#define FIELD_OF_VIEW 0.6981
 /* #define FIELD_OF_VIEW M_PI_2 */
+/* #define FIELD_OF_VIEW 1.0471 */
 #define START_RADIANS M_PI_2
 #define RAD_TURN_VAL (M_PI_4 / 8)
 
@@ -38,10 +39,10 @@ int map_h = 9;
 
 uint32_t map[] = {
 	-1,-1,-1,-1,-1,-1,-1,-1,
-	-1,-1,-1, 0, 0, 0,-1,-1,
-	-1,-1,-1, 0, 0, 0,-1,-1,
-	-1,-1,-1, 0, 0, 0,-1,-1,
-	-1,-1,-1, 0, 0, 0, 0,-1,
+	-1, 0, 0, 0, 0, 0,-1,-1,
+	-1, 0,-1, 0, 0, 0,-1,-1,
+	-1, 0,-1, 0, 0, 0,-1,-1,
+	-1, 0,-1, 0, 0, 0, 0,-1,
 	-1,-1,-1, 0,-1,-1, 0,-1,
 	-1, 0, 0, 0,-1,-1, 0,-1,
 	-1,-1,-1,-1, 0, 0, 0,-1,
@@ -83,10 +84,12 @@ void *rc_action(int nbArgs, void **args)
 	int action = 0;
 	int xadd = 0, yadd = 0;
 
-	if (yevIsKeyDown(events, 'q')) {
+	if (yevIsKeyDown(events, 'q') ||
+	    yevIsKeyDown(events, 'a')) {
 		pj_rad -= RAD_TURN_VAL;
 		action = 1;
-	} else if (yevIsKeyDown(events, 'e')) {
+	} else if (yevIsKeyDown(events, 'e') ||
+		   yevIsKeyDown(events, 'd')) {
 		pj_rad += RAD_TURN_VAL;
 		action = 1;
 	}
@@ -148,12 +151,13 @@ static void print_walls(Entity *rc)
 	int py = yeGetIntAt(rc, "py");
 	int pyc = py / 1000;
 	int pxc = px / 1000;
-	Entity *walls = yeGet(rc, "walls");
 	/* hiw many rad per pixiel */
 	double r0 = pj_rad - (FIELD_OF_VIEW / 2);
 	double cur_rad = r0;
 
-	ywCanvasClear(rc);
+	printf("%d - %d\n", wid_w, wid_h);
+	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h,
+			       "rgba: 100 150 255 255");
 	/* For each rays */
 	for (int i = 0; i < wid_w; ++i) {
 		int wall_dist = 0;
@@ -197,27 +201,15 @@ static void print_walls(Entity *rc)
 				break;
 			}
 		}
-		/* printf("%d\n", wall_dist); */
-		/* wall_dist /=  10; */
-		/* wall_dist -= (abs(i - wid_w / 2)); */
-		/* int threshold = 30 * wall_dist / 1000; */
-		int threshold = wid_h * wall_dist / 8000 / 2;
+		wall_dist *= cos(cur_rad - pj_rad);
+		double wall_h = wid_h * wid_h / (wall_dist / 1.4);
+		ywCanvasMergeRectangle(rc, i, wid_h < wall_h ? 0 :
+				       (wid_h - wall_h) / 2 , 1,
+				       wall_h,
+				       "rgba: 20 20 20 255");
 
-		if (wall_dist < 300)
-			threshold = 0;
-		if (wall_dist < 1000)
-			threshold /= 3;
-		printf("wall d %d\n", wall_dist);
-		if (threshold < wid_h / 2) {
-			/* printf("%d - %d\n", threshold, wall_dist); */
-			front_wall = ywCanvasNewRectangle(rc, i, threshold, 1,
-							  wid_h - (threshold * 2),
-							  "rgba: 20 20 20 255");
-			yePushAt(walls, front_wall, i);
-		}
 		cur_rad = r0 + FIELD_OF_VIEW * i / wid_h;
 	}
-	/* exit(); */
 }
 
 void *rc_init(int nbArgs, void **args)
@@ -230,7 +222,7 @@ void *rc_init(int nbArgs, void **args)
 		rc.action = rc_action;
 		rc.px = START_X;
 		rc.py = START_Y;
-		rc.walls = {};
+		rc.mergable = 1;
 	}
 
 	void *ret = ywidNewWidget(rc, "canvas");
