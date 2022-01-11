@@ -37,7 +37,9 @@ static void print_walls(Entity *rc);
 int map_w;
 int map_h;
 
-uint32_t map[2048];
+#define MAP_MAX_SIZE 2048
+
+uint32_t map[MAP_MAX_SIZE];
 
 static int get_case(int x, int y)
 {
@@ -225,6 +227,9 @@ void *rc_init(int nbArgs, void **args)
 	if (!map_w)
 		FAIL("incorect map W");
 
+	if (map_w * map_h > MAP_MAX_SIZE)
+		FAIL("map too big");
+	
 	for (int i = 0; i < map_h; ++i) {
 		char *line = yeGetStringAt(map_e, i);
 
@@ -232,9 +237,7 @@ void *rc_init(int nbArgs, void **args)
 			FAIL("non equal map W");
 		for (char *tmp = line; *tmp; ++tmp) {
 			*map_p++ = *tmp == '.' ? 0 : -1;
-			printf("%d,", *tmp == '.' ? 0 : -1);
 		}
-		printf("\n");
 	}
 
 
