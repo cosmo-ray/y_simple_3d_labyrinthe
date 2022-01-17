@@ -76,6 +76,17 @@ void *rc_action(int nbArgs, void **args)
 	int action = 0;
 	int xadd = 0, yadd = 0;
 
+	if (yevIsKeyDown(events, Y_ESC_KEY)) {
+		Entity *quit_action = yeGet(rc, "quit");
+
+		if (quit_action)
+			yesCall(quit_action, rc);
+		else
+			ygTerminate();
+
+		return (void *)ACTION;
+	}
+
 	if (yevIsKeyDown(events, 'q') ||
 	    yevIsKeyDown(events, 'a')) {
 		pj_rad -= RAD_TURN_VAL;
@@ -266,7 +277,7 @@ void *mod_init(int nbArg, void **args)
 		mod.name = "raycasting";
 		mod.starting_widget = "test_rc";
 		mod.test_rc = [];
-		mod["window size"] = [800, 600];
+		mod["window size"] = [1300, 800];
 		mod.test_rc["<type>"] = "raycasting";
 		mod.test_rc.background = "rgba: 10 150 255 255";
 		mod.test_rc.map = [
