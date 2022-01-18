@@ -30,14 +30,41 @@
 #define START_RADIANS M_PI_2
 #define RAD_TURN_VAL (M_PI_4 / 8)
 
-double pj_rad = START_RADIANS;
+static double pj_rad = START_RADIANS;
 
 static void print_walls(Entity *rc);
 
-int map_w;
-int map_h;
+static int map_w;
+static int map_h;
+
+#define EXIT_X 0
+#define EXIT_Y 1
+#define EXIT_DIR 2
+#define EXIT_NAME 3
+
+static int exits[32][3];
+static int nb_exits;
 
 #define MAP_MAX_SIZE 2048
+
+enum {
+	DIR_DOWN,
+	DIR_UP,
+	DIR_LEFT,
+	DIR_RIGHT,
+	END_DIR
+};
+
+static char *dir_str[] = {
+	"down",
+	"up",
+	"left",
+	"right"
+};
+
+static double dir_rad[] = {
+	(3 * M_PI) / 2, M_PI_2, M_PI, 0 
+};
 
 uint32_t map[MAP_MAX_SIZE];
 
@@ -63,9 +90,9 @@ static void mvpj(Entity *rc, int xadd, int yadd)
 	int y = yuiTurnY(0, yadd, pj_rad - M_PI_2) -
 		yuiTurnY(0, xadd, pj_rad);
 
-	if (!get_case((pcx(rc) + x) / 1000, pcy(rc) / 1000))
+	if (get_case((pcx(rc) + x) / 1000, pcy(rc) / 1000) > -1)
 		yeAddAt(rc, "px", x);
-	if (!get_case(pcx(rc) / 1000, (pcy(rc) + y) / 1000))
+	if (get_case(pcx(rc) / 1000, (pcy(rc) + y) / 1000) > -1)
 		yeAddAt(rc, "py", y);
 }
 
@@ -129,8 +156,10 @@ static void col_checker(int px, int py, int tpx, int tpy,
 	int t;
 	int x, y;
 
-	if (!get_case(case_x, case_y))
+	if (get_case(case_x, case_y) > -1) {
+		// no colision
 		return;
+	}
 
 	int r = yuiLinesRectIntersect(px, py, tpx, tpy, case_x * 1000 - 1,
 				      case_y * 1000 - 1, 1001, 1001, &x, &y, &t);
@@ -225,6 +254,9 @@ void *rc_init(int nbArgs, void **args)
 	Entity *rc = args[0];
 	Entity *map_e = yeGet(rc, "map");
 	uint32_t *map_p = map;
+	Entity *exits_e = yeGet(rc, "exits");
+	int start_x = START_X, start_y = START_Y;
+	const char *in = yeGetStringAt(rc, "entry");
 
 	if (!map_e)
 		FAIL("no map");
@@ -247,17 +279,44 @@ void *rc_init(int nbArgs, void **args)
 		if (yeLenAt(map_e, i) != map_w)
 			FAIL("non equal map W");
 		for (char *tmp = line; *tmp; ++tmp) {
-			*map_p++ = *tmp == '.' ? 0 : -1;
+			*map_p++ = *tmp == '.' ? 1 : -1;
 		}
 	}
 
+	nb_exits = yeLen(exits_e);
+	if (nb_exits > 32) {
+		printf("TOO MUCH EXISTS, SCALE DOWN TO 32");
+		nb_exits = 32;
+	}
+
+	for (int i = 0; i < nb_exits; ++i) {
+		Entity *e = yeGet(exits_e, i);
+		const char *sdir = yeGetStringAt(e, EXIT_DIR);
+		const char *name = yeGetStringAt(e, EXIT_NAME);
+
+		exits[i][EXIT_X] = yeGetIntAt(e, EXIT_X);
+		exits[i][EXIT_Y] = yeGetIntAt(e, EXIT_Y);
+		if (sdir)
+			for (int j = 0;  j < END_DIR; ++j) {
+				if (!strcmp(sdir, dir_str[j])) {
+					exits[i][EXIT_DIR] = j;
+				}
+			}
+		else
+			exits[i][EXIT_DIR] = 0;
+		exits[i][EXIT_NAME] = name;
+		if (yuiStrEqual0(name, in)) {
+			start_x = exits[i][EXIT_X];
+			start_y = exits[i][EXIT_Y];
+			pj_rad = dir_rad[exits[i][EXIT_DIR]];
+		}
+	}
 
 	ywSetTurnLengthOverwrite(-1);
-	printf("hey you !\n");
 	YEntityBlock {
 		rc.action = rc_action;
-		rc.px = START_X;
-		rc.py = START_Y;
+		rc.px = start_x;
+		rc.py = start_y;
 		rc.mergable = 1;
 	}
 
