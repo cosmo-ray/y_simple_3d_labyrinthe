@@ -68,6 +68,14 @@ static double dir_rad[] = {
 
 uint32_t map[MAP_MAX_SIZE];
 
+#define FLAG_WALL 1
+#define FLAG_EXIT 2
+
+static int case_set_elem(int x, int y, int flag)
+{
+	map[x +  (map_w * y)] |= flag;
+}
+
 static int get_case(int x, int y)
 {
 	return map[x +  (map_w * y)];
@@ -90,9 +98,9 @@ static void mvpj(Entity *rc, int xadd, int yadd)
 	int y = yuiTurnY(0, yadd, pj_rad - M_PI_2) -
 		yuiTurnY(0, xadd, pj_rad);
 
-	if (get_case((pcx(rc) + x) / 1000, pcy(rc) / 1000) > -1)
+	if (! (get_case((pcx(rc) + x) / 1000, pcy(rc) / 1000) & 1))
 		yeAddAt(rc, "px", x);
-	if (get_case(pcx(rc) / 1000, (pcy(rc) + y) / 1000) > -1)
+	if (! (get_case(pcx(rc) / 1000, (pcy(rc) + y) / 1000) & 1))
 		yeAddAt(rc, "py", y);
 }
 
@@ -156,7 +164,7 @@ static void col_checker(int px, int py, int tpx, int tpy,
 	int t;
 	int x, y;
 
-	if (get_case(case_x, case_y) > -1) {
+	if (!(get_case(case_x, case_y) & 1)) {
 		// no colision
 		return;
 	}
@@ -279,7 +287,7 @@ void *rc_init(int nbArgs, void **args)
 		if (yeLenAt(map_e, i) != map_w)
 			FAIL("non equal map W");
 		for (char *tmp = line; *tmp; ++tmp) {
-			*map_p++ = *tmp == '.' ? 1 : -1;
+			*map_p++ = *tmp == '.' ? 0 : FLAG_WALL;
 		}
 	}
 
@@ -294,6 +302,7 @@ void *rc_init(int nbArgs, void **args)
 		const char *sdir = yeGetStringAt(e, EXIT_DIR);
 		const char *name = yeGetStringAt(e, EXIT_NAME);
 
+		// check out of bounds would be nice here.
 		exits[i][EXIT_X] = yeGetIntAt(e, EXIT_X);
 		exits[i][EXIT_Y] = yeGetIntAt(e, EXIT_Y);
 		if (sdir)
@@ -310,6 +319,8 @@ void *rc_init(int nbArgs, void **args)
 			start_y = exits[i][EXIT_Y];
 			pj_rad = dir_rad[exits[i][EXIT_DIR]];
 		}
+		case_set_elem(exits[i][EXIT_X] / 1000, exits[i][EXIT_Y] / 1000,
+			      FLAG_EXIT);
 	}
 
 	ywSetTurnLengthOverwrite(-1);
