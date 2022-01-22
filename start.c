@@ -37,13 +37,20 @@ static void print_walls(Entity *rc);
 static int map_w;
 static int map_h;
 
+static struct {
+	int type;
+	int x;
+	void *ptr;
+} print_stack[128];
+int print_stack_l;
+
 #define EXIT_X 0
 #define EXIT_Y 1
 #define EXIT_DIR 2
 #define EXIT_NAME 3
+#define EXIT_MARK 3
 
-static int exits[32][3];
-static int nb_exits;
+#define EXIT_SIZE (EXIT_MARK + 1)
 
 #define MAP_MAX_SIZE 2048
 
@@ -63,22 +70,28 @@ static char *dir_str[] = {
 };
 
 static double dir_rad[] = {
-	(3 * M_PI) / 2, M_PI_2, M_PI, 0 
+	(3 * M_PI) / 2, M_PI_2, M_PI, 0
 };
 
 uint32_t map[MAP_MAX_SIZE];
+static int exits[MAP_MAX_SIZE][EXIT_SIZE];
 
 #define FLAG_WALL 1
 #define FLAG_EXIT 2
 
-static int case_set_elem(int x, int y, int flag)
+static inline int case_idx(int x, int y)
 {
-	map[x +  (map_w * y)] |= flag;
+	return x +  (map_w * y);
 }
 
-static int get_case(int x, int y)
+static inline void case_set_elem(int x, int y, int flag)
 {
-	return map[x +  (map_w * y)];
+	map[case_idx(x, y)] |= flag;
+}
+
+static inline int get_case(int x, int y)
+{
+	return map[case_idx(x, y)];
 }
 
 static int pcx(Entity *rc)
@@ -158,15 +171,36 @@ void *rc_action(int nbArgs, void **args)
 	return (void *)ACTION;
 }
 
-static void col_checker(int px, int py, int tpx, int tpy,
+static int col_checker(int px, int py, int tpx, int tpy,
 			int case_x, int case_y, int *ot, int *wall_dist)
 {
 	int t;
 	int x, y;
+	uint32_t f = get_case(case_x, case_y);
+	int ret = 0;
 
-	if (!(get_case(case_x, case_y) & 1)) {
+	if (!(f & FLAG_WALL)) {
+		if (f & FLAG_EXIT) {
+			int etx = exits[case_idx(case_x, case_y)][EXIT_X];
+			int ety = exits[case_idx(case_x, case_y)][EXIT_Y];
+
+			int r = yuiLinesRectIntersect(px, py, tpx, tpy, etx, ety,
+						      5, 5, &x, &y, &t);
+			if (r && !exits[case_idx(case_x, case_y)][EXIT_MARK]) {
+				exits[case_idx(case_x, case_y)][EXIT_MARK] = 1;
+				print_stack[print_stack_l].type = FLAG_EXIT;
+				print_stack[print_stack_l].ptr = &exits[case_idx(case_x, case_y)];
+				++print_stack_l;
+				++ret;
+				printf("EXIT IN %d %d %s -- ", etx, ety,
+				       dir_str[exits[case_idx(case_x, case_y)][EXIT_DIR]]);
+				printf("%d %d %d %d %d %d\n", px,
+				       py, tpx, tpy, case_x, case_y);
+			}
+		}
+
 		// no colision
-		return;
+		return ret;
 	}
 
 	int r = yuiLinesRectIntersect(px, py, tpx, tpy, case_x * 1000 - 1,
@@ -179,6 +213,7 @@ static void col_checker(int px, int py, int tpx, int tpy,
 			*ot = t;
 		}
 	}
+	return ret;
 }
 
 static void print_walls(Entity *rc)
@@ -212,30 +247,35 @@ static void print_walls(Entity *rc)
 		     tpy += y_dir, tpx += x_dir) {
 			int case_x = tpx / 1000;
 			int case_y = tpy / 1000;
+			int printable = 0;
 			int it;
 
-			/* moddie case */
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
+			/* moiddle case */
+			printable += col_checker(px, py, tpx, tpy, case_x, case_y,
+						 &it, &wall_dist);
 			case_y++;
 
 			/* top cases */
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
+			printable += col_checker(px, py, tpx, tpy, case_x, case_y,
+						 &it, &wall_dist);
 
 			/* bottom cases */
 			case_y -= 2;
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
+			printable += col_checker(px, py, tpx, tpy, case_x, case_y,
+						 &it, &wall_dist);
 
 			/* middle again */
 			case_y++;
 			case_x++;
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
+			printable += col_checker(px, py, tpx, tpy, case_x, case_y,
+						 &it, &wall_dist);
 			case_x -= 2;
-			col_checker(px, py, tpx, tpy, case_x, case_y,
-				    &it, &wall_dist);
+			printable +=  col_checker(px, py, tpx, tpy, case_x, case_y,
+						  &it, &wall_dist);
+
+			for (;printable; --printable) {
+				print_stack[print_stack_l - printable].x = i;
+			}
 
 			if (wall_dist) {
 				break;
@@ -250,6 +290,27 @@ static void print_walls(Entity *rc)
 
 		cur_rad = r0 + FIELD_OF_VIEW * i / wid_h;
 	}
+	for (int i = 0; i < print_stack_l; ++i) {
+		int x = print_stack[i].x;
+		int (*e)[EXIT_SIZE] = print_stack[i].ptr;
+		int ex = (*e)[EXIT_X];
+		int ey = (*e)[EXIT_Y];
+		int ed = yuiPointsDist(px, py, ex, ey);
+		double e_h = ed < 30 ? wid_h : wid_h * wid_h / (ed / 1.4);
+		double e_x = ed < 30 ? 120 : 120 * 120 / (ed / 1.7);
+
+		printf("ELEM %d IN PRINT STACK\n", i);
+		printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]);
+		printf("dist: %d %f\n", yuiPointsDist(px, py, ex, ey), e_h);
+		ywCanvasMergeRectangle(rc, x,
+				       wid_h < e_h ? 0 :
+				       (wid_h - e_h) / 2, // x, y
+				       e_x, e_h,
+				       "rgba: 127 127 127 255");
+
+		(*e)[EXIT_MARK] = 0;
+	}
+	print_stack_l = 0;
 }
 
 #define FAIL(fmt...) do {				\
@@ -265,6 +326,7 @@ void *rc_init(int nbArgs, void **args)
 	Entity *exits_e = yeGet(rc, "exits");
 	int start_x = START_X, start_y = START_Y;
 	const char *in = yeGetStringAt(rc, "entry");
+	int nb_exits;
 
 	if (!map_e)
 		FAIL("no map");
@@ -292,35 +354,32 @@ void *rc_init(int nbArgs, void **args)
 	}
 
 	nb_exits = yeLen(exits_e);
-	if (nb_exits > 32) {
-		printf("TOO MUCH EXISTS, SCALE DOWN TO 32");
-		nb_exits = 32;
-	}
-
 	for (int i = 0; i < nb_exits; ++i) {
 		Entity *e = yeGet(exits_e, i);
 		const char *sdir = yeGetStringAt(e, EXIT_DIR);
 		const char *name = yeGetStringAt(e, EXIT_NAME);
+		int x = yeGetIntAt(e, EXIT_X);
+		int y = yeGetIntAt(e, EXIT_Y);
+		int idx = case_idx(x / 1000, y / 1000);
 
 		// check out of bounds would be nice here.
-		exits[i][EXIT_X] = yeGetIntAt(e, EXIT_X);
-		exits[i][EXIT_Y] = yeGetIntAt(e, EXIT_Y);
+		exits[idx][EXIT_X] = x;
+		exits[idx][EXIT_Y] = y;
 		if (sdir)
 			for (int j = 0;  j < END_DIR; ++j) {
 				if (!strcmp(sdir, dir_str[j])) {
-					exits[i][EXIT_DIR] = j;
+					exits[idx][EXIT_DIR] = j;
 				}
 			}
 		else
 			exits[i][EXIT_DIR] = 0;
 		exits[i][EXIT_NAME] = name;
 		if (yuiStrEqual0(name, in)) {
-			start_x = exits[i][EXIT_X];
-			start_y = exits[i][EXIT_Y];
+			start_x = exits[idx][EXIT_X];
+			start_y = exits[idx][EXIT_Y];
 			pj_rad = dir_rad[exits[i][EXIT_DIR]];
 		}
-		case_set_elem(exits[i][EXIT_X] / 1000, exits[i][EXIT_Y] / 1000,
-			      FLAG_EXIT);
+		case_set_elem(x / 1000, y / 1000, FLAG_EXIT);
 	}
 
 	ywSetTurnLengthOverwrite(-1);
