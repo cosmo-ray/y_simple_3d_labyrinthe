@@ -70,6 +70,14 @@ static double dir_rad[] = {
 	(3 * M_PI) / 2, M_PI_2, M_PI, 0
 };
 
+static int dir_x_threshod[] = {
+	0, 0, -100, 100
+};
+
+static int dir_y_threshod[] = {
+	100, -100, 0, 0
+};
+
 uint32_t map[MAP_MAX_SIZE];
 static int exits[MAP_MAX_SIZE][EXIT_SIZE];
 
@@ -384,10 +392,11 @@ void *rc_init(int nbArgs, void **args)
 			}
 		else
 			exits[i][EXIT_DIR] = 0;
+
 		if (yuiStrEqual0(name, in)) {
-			start_x = exits[idx][EXIT_X];
-			start_y = exits[idx][EXIT_Y];
-			pj_rad = dir_rad[exits[i][EXIT_DIR]];
+			start_x = exits[idx][EXIT_X] + dir_x_threshod[exits[idx][EXIT_DIR]];
+			start_y = exits[idx][EXIT_Y] + dir_y_threshod[exits[idx][EXIT_DIR]];
+			pj_rad = dir_rad[exits[idx][EXIT_DIR]];
 		}
 		case_set_elem(x / 1000, y / 1000, FLAG_EXIT);
 	}
