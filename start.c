@@ -13,12 +13,9 @@
  *  0. You just DO WHAT THE FUCK YOU WANT TO.
  */
 
-#include <yirl/entity.h>
-#include <yirl/events.h>
-#include <yirl/entity-script.h>
-#include <yirl/canvas.h>
-#include <yirl/game.h>
-#include <yirl/timer.h>
+#include <yirl/all.h>
+
+#include "sinple_sprite.c"
 
 #define START_X 4500
 #define START_Y 4500
@@ -231,7 +228,9 @@ static void print_walls(Entity *rc)
 	double cur_rad = r0;
 
 	printf("%d - %d\n", wid_w, wid_h);
-	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h,
+	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h / 2,
+			       "rgba: 150 150 150 255");
+	ywCanvasMergeRectangle(rc, 0, wid_h / 2, wid_w, wid_h / 2,
 			       "rgba: 100 150 255 255");
 	/* For each rays */
 	for (int i = 0; i < wid_w; ++i) {
@@ -297,16 +296,22 @@ static void print_walls(Entity *rc)
 		int ey = (*e)[EXIT_Y];
 		int ed = yuiPointsDist(px, py, ex, ey);
 		double e_h = ed < 30 ? wid_h : wid_h * wid_h / (ed / 1.4);
-		double e_x = ed < 30 ? 120 : 120 * 120 / (ed / 1.7);
+		double e_w = ed < 30 ? 120 : 120 * 120 / (ed / 1.7);
 
 		printf("ELEM %d IN PRINT STACK\n", i);
 		printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]);
 		printf("dist: %d %f\n", yuiPointsDist(px, py, ex, ey), e_h);
-		ywCanvasMergeRectangle(rc, x,
-				       wid_h < e_h ? 0 :
-				       (wid_h - e_h) / 2, // x, y
-				       e_x, e_h,
-				       "rgba: 127 127 127 255");
+		/* ywCanvasMergeRectangle(rc, x, */
+		/* 		       wid_h < e_h ? 0 : */
+		/* 		       (wid_h - e_h) / 2, // x, y */
+		/* 		       e_w, e_h, */
+		/* 		       "rgba: 127 127 127 255"); */
+		Entity *lad = y_ssprite_obj(rc, &ladder, x, wid_h < e_h ? 0 :
+					       (wid_h - e_h) / 2);
+		yeAutoFree Entity *size = ywSizeCreate(e_w, e_h,
+						       NULL, NULL);
+		ywCanvasForceSize(lad, size);
+
 
 		(*e)[EXIT_MARK] = 0;
 	}
@@ -317,6 +322,12 @@ static void print_walls(Entity *rc)
 		DPRINT_ERR(fmt);			\
 		return NULL;				\
 	} while (0);
+
+
+void rc_destroy()
+{
+	y_ssprites_deinit();
+}
 
 void *rc_init(int nbArgs, void **args)
 {
@@ -344,11 +355,11 @@ void *rc_init(int nbArgs, void **args)
 		FAIL("map too big");
 	
 	for (int i = 0; i < map_h; ++i) {
-		char *line = yeGetStringAt(map_e, i);
+		const char *line = yeGetStringAt(map_e, i);
 
 		if (yeLenAt(map_e, i) != map_w)
 			FAIL("non equal map W");
-		for (char *tmp = line; *tmp; ++tmp) {
+		for (const char *tmp = line; *tmp; ++tmp) {
 			*map_p++ = *tmp == '.' ? 0 : FLAG_WALL;
 		}
 	}
@@ -373,7 +384,6 @@ void *rc_init(int nbArgs, void **args)
 			}
 		else
 			exits[i][EXIT_DIR] = 0;
-		exits[i][EXIT_NAME] = name;
 		if (yuiStrEqual0(name, in)) {
 			start_x = exits[idx][EXIT_X];
 			start_y = exits[idx][EXIT_Y];
@@ -385,11 +395,13 @@ void *rc_init(int nbArgs, void **args)
 	ywSetTurnLengthOverwrite(-1);
 	YEntityBlock {
 		rc.action = rc_action;
+		rc.destroy = rc_destroy;
 		rc.px = start_x;
 		rc.py = start_y;
 		rc.mergable = 1;
 	}
 
+	y_ssprites_init();
 	void *ret = ywidNewWidget(rc, "canvas");
 	print_walls(rc);
 	return ret;
