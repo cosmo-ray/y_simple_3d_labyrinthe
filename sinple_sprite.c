@@ -1,6 +1,6 @@
 struct ssprite {
-	char *c_b;
-	char *c_f;
+	int c_b;
+	int c_f;
 	char *end_def;
 	Entity *info;
 	char *d[];
@@ -47,9 +47,9 @@ void y_ssprites_init(void)
 			++l;
 		}
 		ywSizeCreate(w, l, p->info, NULL);
-		yeCreateString(p->c_b, p->info, NULL);
-		yeCreateString(p->c_f, p->info, NULL);
-
+		yeCreateInt(p->c_b, p->info, NULL);
+		yeCreateInt(p->c_f, p->info, NULL);
+		yeCreateInt(1, p->info, NULL);
 	}
 }
 

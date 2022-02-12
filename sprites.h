@@ -1,4 +1,4 @@
-ADD_SSPRITE(ladder, "rgba: 0 0 0 0", "rgba: 50 50 50 255",
+ADD_SSPRITE(ladder, 0x00000000, 0x909090ff,
 	    "##         ##",
 	    "##         ##",
 	    "##         ##",
