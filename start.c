@@ -293,7 +293,7 @@ static void print_walls(Entity *rc)
 		ywCanvasMergeRectangle(rc, i, wid_h < wall_h ? 0 :
 				       (wid_h - wall_h) / 2 , 1,
 				       wall_h,
-				       "rgba: 20 20 20 255");
+				       "rgba: 220 20 10 255");
 
 		cur_rad = r0 + FIELD_OF_VIEW * i / wid_h;
 	}
@@ -304,7 +304,7 @@ static void print_walls(Entity *rc)
 		int ey = (*e)[EXIT_Y];
 		int ed = yuiPointsDist(px, py, ex, ey);
 		double e_h = ed < 30 ? wid_h : wid_h * wid_h / (ed / 1.4);
-		double e_w = ed < 30 ? 120 : 120 * 120 / (ed / 1.7);
+		double e_w = ed < 30 ? 220 : 220 * 220 / (ed / 1.7);
 
 		printf("ELEM %d IN PRINT STACK\n", i);
 		printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]);
@@ -315,7 +315,7 @@ static void print_walls(Entity *rc)
 		/* 		       e_w, e_h, */
 		/* 		       "rgba: 127 127 127 255"); */
 		Entity *lad = y_ssprite_obj(rc, &ladder, x, wid_h < e_h ? 0 :
-					       (wid_h - e_h) / 2);
+					    (wid_h - e_h) / 2);
 		yeAutoFree Entity *size = ywSizeCreate(e_w, e_h,
 						       NULL, NULL);
 		ywCanvasForceSize(lad, size);
