@@ -41,6 +41,8 @@ static struct {
 } print_stack[128];
 int print_stack_l;
 
+int old_t;
+
 #define EXIT_X 0
 #define EXIT_Y 1
 #define EXIT_DIR 2
@@ -335,6 +337,7 @@ static void print_walls(Entity *rc)
 void rc_destroy()
 {
 	y_ssprites_deinit();
+	ywSetTurnLengthOverwrite(old_t);
 }
 
 void *rc_init(int nbArgs, void **args)
@@ -401,6 +404,7 @@ void *rc_init(int nbArgs, void **args)
 		case_set_elem(x / 1000, y / 1000, FLAG_EXIT);
 	}
 
+	old_t = ywGetTurnLengthOverwrite();
 	ywSetTurnLengthOverwrite(-1);
 	YEntityBlock {
 		rc.action = rc_action;
