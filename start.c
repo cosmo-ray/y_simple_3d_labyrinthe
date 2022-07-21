@@ -29,7 +29,7 @@
 
 static double pj_rad = START_RADIANS;
 
-static void print_walls(Entity *rc);
+static void print_walls(Entity *rc, int);
 
 static int map_w;
 static int map_h;
@@ -129,6 +129,7 @@ void *rc_action(int nbArgs, void **args)
 	Entity *rc = args[0];
 	Entity *events = args[1];
 	int action = 0;
+	int action_keys = 0;
 	int xadd = 0, yadd = 0;
 
 	if (yevIsKeyDown(events, Y_ESC_KEY)) {
@@ -142,6 +143,11 @@ void *rc_action(int nbArgs, void **args)
 		return (void *)ACTION;
 	}
 
+	if (yevIsKeyDown(events, '\n') ||
+	    yevIsKeyDown(events, ' ')) {
+		printf("ACTION KEY ENTER !!!!");
+		action_keys = 1;
+	}
 	if (yevIsKeyDown(events, 'q') ||
 	    yevIsKeyDown(events, 'a')) {
 		pj_rad -= RAD_TURN_VAL;
@@ -172,7 +178,7 @@ void *rc_action(int nbArgs, void **args)
 		xadd = 100;
 		action = 1;
 	}
-	print_walls(rc);
+	print_walls(rc, action_keys);
 	if (action)
 		mvpj(rc, xadd, yadd);
 	return (void *)ACTION;
@@ -223,7 +229,7 @@ static int col_checker(int px, int py, int tpx, int tpy,
 	return ret;
 }
 
-static void print_walls(Entity *rc)
+static void print_walls(Entity *rc, int action_keys)
 {
 	Entity *front_wall;
 	Entity *ofw;
@@ -308,9 +314,19 @@ static void print_walls(Entity *rc)
 		double e_h = ed < 30 ? wid_h : wid_h * wid_h / (ed / 1.4);
 		double e_w = ed < 30 ? 220 : 220 * 220 / (ed / 1.7);
 
-		printf("ELEM %d IN PRINT STACK\n", i);
-		printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]);
-		printf("dist: %d %f\n", yuiPointsDist(px, py, ex, ey), e_h);
+		if (action_keys && abs((ex + ey) - (px + py)) < 800) {
+			Entity *exit_action = yeGet(rc, "exit_action");
+
+			printf("ACTION ON EXIT %p !!!!\n", yeGet(rc, "exits"));
+			printf("ACTION ON EXIT %s !!!!\n",
+			       yeGetStringAt(yeGet(yeGet(rc, "exits"), i), EXIT_NAME + 1));
+			yesCall(exit_action, rc, NULL,
+				yeGetStringAt(yeGet(yeGet(rc, "exits"), i), EXIT_NAME + 1),
+				yeGetIntAt(yeGet(yeGet(rc, "exits"), i), EXIT_NAME + 2));
+		}
+		/* printf("ELEM %d IN PRINT STACK\n", i); */
+		/* printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]); */
+		/* printf("dist: %d %f\n", yuiPointsDist(px, py, ex, ey), e_h); */
 		/* ywCanvasMergeRectangle(rc, x, */
 		/* 		       wid_h < e_h ? 0 : */
 		/* 		       (wid_h - e_h) / 2, // x, y */
@@ -416,7 +432,7 @@ void *rc_init(int nbArgs, void **args)
 
 	y_ssprites_init();
 	void *ret = ywidNewWidget(rc, "canvas");
-	print_walls(rc);
+	print_walls(rc, 0);
 	return ret;
 }
 
