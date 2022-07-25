@@ -47,7 +47,8 @@ int old_t;
 #define EXIT_Y 1
 #define EXIT_DIR 2
 #define EXIT_NAME 3
-#define EXIT_MARK 3
+#define EXIT_IDX 3
+#define EXIT_MARK 4
 
 #define EXIT_SIZE (EXIT_MARK + 1)
 
@@ -205,10 +206,6 @@ static int col_checker(int px, int py, int tpx, int tpy,
 				print_stack[print_stack_l].ptr = &exits[case_idx(case_x, case_y)];
 				++print_stack_l;
 				++ret;
-				printf("EXIT IN %d %d %s -- ", etx, ety,
-				       dir_str[exits[case_idx(case_x, case_y)][EXIT_DIR]]);
-				printf("%d %d %d %d %d %d\n", px,
-				       py, tpx, tpy, case_x, case_y);
 			}
 		}
 
@@ -316,13 +313,19 @@ static void print_walls(Entity *rc, int action_keys)
 
 		if (action_keys && abs((ex + ey) - (px + py)) < 800) {
 			Entity *exit_action = yeGet(rc, "exit_action");
+			int idx = (*e)[EXIT_IDX];
 
-			printf("ACTION ON EXIT %p !!!!\n", yeGet(rc, "exits"));
-			printf("ACTION ON EXIT %s !!!!\n",
-			       yeGetStringAt(yeGet(yeGet(rc, "exits"), i), EXIT_NAME + 1));
+			/* printf("ACTION ON EXIT %p !!!!\n", yeGet(rc, "exits")); */
+			/* printf("ACTION ON EXIT %s %d !!!!\n", */
+			/*        yeGetStringAt(yeGet(yeGet(rc, "exits"), idx), */
+			/* 		     EXIT_NAME + 1), */
+			/*        yeGetIntAt(yeGet(yeGet(rc, "exits"), idx), */
+			/* 		  EXIT_NAME + 2)); */
 			yesCall(exit_action, rc, NULL,
-				yeGetStringAt(yeGet(yeGet(rc, "exits"), i), EXIT_NAME + 1),
-				yeGetIntAt(yeGet(yeGet(rc, "exits"), i), EXIT_NAME + 2));
+				yeGetStringAt(yeGet(yeGet(rc, "exits"), idx),
+					      EXIT_NAME + 1),
+				yeGetIntAt(yeGet(yeGet(rc, "exits"), idx),
+					   EXIT_NAME + 2));
 		}
 		/* printf("ELEM %d IN PRINT STACK\n", i); */
 		/* printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]); */
@@ -403,6 +406,7 @@ void *rc_init(int nbArgs, void **args)
 		// check out of bounds would be nice here.
 		exits[idx][EXIT_X] = x;
 		exits[idx][EXIT_Y] = y;
+		exits[idx][EXIT_IDX] = i;
 		if (sdir)
 			for (int j = 0;  j < END_DIR; ++j) {
 				if (!strcmp(sdir, dir_str[j])) {
