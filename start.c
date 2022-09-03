@@ -165,10 +165,10 @@ void *rc_action(int nbArgs, void **args)
 		pj_rad += 2 * M_PI;
 	}
 
-	if (yevIsKeyDown(events, Y_UP_KEY)) {
+	if (yevIsKeyDown(events, Y_UP_KEY) || yevIsKeyDown(events, 'w')) {
 		yadd = -100;
 		action = 1;
-	} else if (yevIsKeyDown(events, Y_DOWN_KEY)) {
+	} else if (yevIsKeyDown(events, Y_DOWN_KEY) || yevIsKeyDown(events, 's')) {
 		yadd = 100;
 		action = 1;
 	}
