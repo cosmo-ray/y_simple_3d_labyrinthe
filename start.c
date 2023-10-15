@@ -230,12 +230,14 @@ static void print_walls(Entity *rc, int action_keys)
 {
 	Entity *front_wall;
 	Entity *ofw;
+	Entity *enemies = yeGet(rc, "enemies");
 	int wid_w = ywRectW(yeGet(rc, "wid-pix"));
 	int wid_h = ywRectH(yeGet(rc, "wid-pix"));
 	int px = yeGetIntAt(rc, "px");
 	int py = yeGetIntAt(rc, "py");
 	int pyc = py / 1000;
 	int pxc = px / 1000;
+	yeAutoFree Entity *pc_pos = ywPosCreateInts(px, py, NULL, NULL);
 	/* hiw many rad per pixiel */
 	double r0 = pj_rad - (FIELD_OF_VIEW / 2);
 	double cur_rad = r0;
@@ -302,6 +304,23 @@ static void print_walls(Entity *rc, int action_keys)
 
 		cur_rad = r0 + FIELD_OF_VIEW * i / wid_h;
 	}
+	double pj_angle = pj_rad * (180 / M_PI);
+	YE_FOREACH(enemies, e) {
+	  Entity *e_pos = yeGet(e, 0);
+	  yePrint(e);
+	  printf("enemy dist %d %f %f %f: %f\n", ywPosDistance(pc_pos, e_pos), ywPosAngle(pc_pos, e_pos),
+		 pj_rad, pj_angle,
+		 pj_angle - ywPosAngle(pc_pos, e_pos));
+	  if (abs(pj_angle - ywPosAngle(pc_pos, e_pos)) > 45) {
+	    continue;
+	  }
+	  Entity *r = y_ssprite_obj(rc, &rat, 50, 100);
+	  yeAutoFree Entity *size = ywSizeCreate(200, 200,
+						 NULL, NULL);
+	  ywCanvasForceSize(r, size);
+
+	}
+
 	for (int i = 0; i < print_stack_l; ++i) {
 		int x = print_stack[i].x;
 		int (*e)[EXIT_SIZE] = print_stack[i].ptr;
@@ -465,6 +484,10 @@ void *mod_init(int nbArg, void **args)
 			"####...#",
 			"########"
 			];
+		mod.test_rc.exits = {};
+		mod.test_rc.exits[0] = [1200, 1700];
+		mod.test_rc.enemies = {};
+		mod.test_rc.enemies[0] = [[4200, 1700], "rat"];
 		mod["window name"] = "RC";
 	}
 
