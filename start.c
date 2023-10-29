@@ -307,25 +307,34 @@ static void print_walls(Entity *rc, int action_keys)
 	double pj_angle = pj_rad * (180 / M_PI);
 	YE_FOREACH(enemies, e) {
 	  Entity *e_pos = yeGet(e, 0);
+	  char *e_name = yeGetStringAt(e, 1);
+	  void *enemy = e_name[0] == 'r' ? &rat : &bguy;
 	  int max_size = 500;
 	  int min_size = 10;
 	  int dist = ywPosDistance(pc_pos, e_pos);
 	  if (dist > 8000)
 	    continue;
-	  int size_xy = 500.0 - 40.0 * (dist / 1000.0);
+	  int size_xy = 500.0 - 70.0 * (dist / 1000.0);
 	  printf("size_xy: %f\n", size_xy);
 
-	  yePrint(e);
-	  printf("enemy dist %d %f %f %f: %f\n", dist, ywPosAngle(pc_pos, e_pos),
+	  printf("enemy dist %d enemy-pc angle: %f pc rad: %f pc andle: %f: relative: %f\n",
+		 dist, ywPosAngle(pc_pos, e_pos),
 		 pj_rad, pj_angle,
 		 pj_angle - ywPosAngle(pc_pos, e_pos));
 
-	  if (abs(pj_angle - ywPosAngle(pc_pos, e_pos)) > 45) {
+	  double relative_angle = pj_angle - ywPosAngle(pc_pos, e_pos); 
+	  printf("pix x pos: %u\n", (relative_angle + 45) * (wid_w) / 90);
+	  if (abs(relative_angle) > 45) {
 	    continue;
 	  }
-	  Entity *r = y_ssprite_obj(rc, &rat, 50, 100);
-	  yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy,
-						 NULL, NULL);
+	  Entity *r = y_ssprite_obj(rc, enemy,
+				    // x pos
+				    (relative_angle + 45) * (wid_w) / 90,
+				    // compute botom pos depending on distance,
+				    // the futher the less high
+				    250);
+	  yePrint(r);
+	  yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
 	  ywCanvasForceSize(r, size);
 
 	}
@@ -497,6 +506,7 @@ void *mod_init(int nbArg, void **args)
 		mod.test_rc.exits[0] = [1200, 1700];
 		mod.test_rc.enemies = {};
 		mod.test_rc.enemies[0] = [[4200, 1700], "rat"];
+		mod.test_rc.enemies[1] = [[1200, 3700], "bguy"];
 		mod["window name"] = "RC";
 	}
 
