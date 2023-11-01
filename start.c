@@ -314,7 +314,7 @@ static void print_walls(Entity *rc, int action_keys)
 	  int dist = ywPosDistance(pc_pos, e_pos);
 	  if (dist > 8000)
 	    continue;
-	  int size_xy = 500.0 - 70.0 * (dist / 1000.0);
+	  int size_xy = 500.0 - 100.0 * (dist / 1000.0);
 	  printf("size_xy: %f\n", size_xy);
 
 	  double relative_angle = pj_angle - ywPosAngle(pc_pos, e_pos);
@@ -323,7 +323,7 @@ static void print_walls(Entity *rc, int action_keys)
 		 pj_rad, pj_angle,
 		 relative_angle);
 
-	  int enemy_x = (wid_w) - ((relative_angle + 45) * (size_xy + wid_w) / 90);
+	  int enemy_x = (wid_w) - ((relative_angle + 45) * (size_xy + wid_w) / 90) - size_xy / 2;
 	  printf("pix x pos: %u\n", enemy_x);
 	  if (abs(relative_angle) > 45) {
 	    continue;
@@ -332,7 +332,9 @@ static void print_walls(Entity *rc, int action_keys)
 				    enemy_x,
 				    // compute botom pos depending on distance,
 				    // the futher the less high
-				    250);
+				    300
+				    + (20.0 * (dist / 1000.0))
+				    );
 	  yePrint(r);
 	  yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
 	  ywCanvasForceSize(r, size);
