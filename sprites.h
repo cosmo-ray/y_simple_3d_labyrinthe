@@ -53,7 +53,7 @@ ADD_SSPRITE(ladder, 0x111111ff, 0x909090ff,
 	      " #       # "
 	      )
 
-  ADD_SSPRITE(bguy, 0x111111ff, 0x909090ff,
+  ADD_SSPRITE(bguy, 0x111111ff, 0xa0f050ff,
 	      "          # ",
 	      "    ###   # ",
 	      "   #   #  # ",

@@ -317,19 +317,19 @@ static void print_walls(Entity *rc, int action_keys)
 	  int size_xy = 500.0 - 70.0 * (dist / 1000.0);
 	  printf("size_xy: %f\n", size_xy);
 
+	  double relative_angle = pj_angle - ywPosAngle(pc_pos, e_pos);
 	  printf("enemy dist %d enemy-pc angle: %f pc rad: %f pc andle: %f: relative: %f\n",
 		 dist, ywPosAngle(pc_pos, e_pos),
 		 pj_rad, pj_angle,
-		 pj_angle - ywPosAngle(pc_pos, e_pos));
+		 relative_angle);
 
-	  double relative_angle = pj_angle - ywPosAngle(pc_pos, e_pos); 
-	  printf("pix x pos: %u\n", (relative_angle + 45) * (wid_w) / 90);
+	  int enemy_x = (wid_w) - ((relative_angle + 45) * (size_xy + wid_w) / 90);
+	  printf("pix x pos: %u\n", enemy_x);
 	  if (abs(relative_angle) > 45) {
 	    continue;
 	  }
 	  Entity *r = y_ssprite_obj(rc, enemy,
-				    // x pos
-				    (relative_angle + 45) * (wid_w) / 90,
+				    enemy_x,
 				    // compute botom pos depending on distance,
 				    // the futher the less high
 				    250);
