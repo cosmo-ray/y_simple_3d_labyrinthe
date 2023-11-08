@@ -42,6 +42,7 @@ static struct {
 int print_stack_l;
 
 int old_t;
+int atk_cooldown;
 
 #define EXIT_X 0
 #define EXIT_Y 1
@@ -372,11 +373,16 @@ static void print_walls(Entity *rc, int action_keys)
 			/* 		     EXIT_NAME + 1), */
 			/*        yeGetIntAt(yeGet(yeGet(rc, "exits"), idx), */
 			/* 		  EXIT_NAME + 2)); */
-			yesCall(exit_action, rc, NULL,
-				yeGetStringAt(yeGet(yeGet(rc, "exits"), idx),
-					      EXIT_NAME + 1),
-				yeGetIntAt(yeGet(yeGet(rc, "exits"), idx),
-					   EXIT_NAME + 2));
+			if (exit_action) {
+				yesCall(exit_action, rc, NULL,
+					yeGetStringAt(yeGet(yeGet(rc, "exits"), idx),
+						      EXIT_NAME + 1),
+					yeGetIntAt(yeGet(yeGet(rc, "exits"), idx),
+						   EXIT_NAME + 2));
+			} else {
+				ygTerminate();
+			}
+			goto out;
 		}
 		/* printf("ELEM %d IN PRINT STACK\n", i); */
 		/* printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]); */
@@ -395,6 +401,17 @@ static void print_walls(Entity *rc, int action_keys)
 
 		(*e)[EXIT_MARK] = 0;
 	}
+	if (action_keys || atk_cooldown > 0) {
+		Entity *p = y_ssprite_obj(rc, &punch, 250, 400);
+		yeAutoFree Entity *size = ywSizeCreate(200, 200,
+						       NULL, NULL);
+		ywCanvasForceSize(p, size);
+		if (action_keys && atk_cooldown <= 0)
+			atk_cooldown = 300000;
+	}
+	atk_cooldown -= ywidGetTurnTimer();
+
+out:
 	print_stack_l = 0;
 }
 
