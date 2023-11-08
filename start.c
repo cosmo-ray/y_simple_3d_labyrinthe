@@ -149,6 +149,9 @@ void *rc_action(int nbArgs, void **args)
 	    yevIsKeyDown(events, ' ')) {
 		printf("ACTION KEY ENTER !!!!");
 		action_keys = 1;
+	} else if (yevIsKeyDown(events, 'p')) {
+		printf("ACTION KEY ENTER !!!!");
+		action_keys = 2;
 	}
 	if (yevIsKeyDown(events, 'q') ||
 	    yevIsKeyDown(events, 'a')) {
@@ -363,7 +366,7 @@ static void print_walls(Entity *rc, int action_keys)
 		double e_h = ed < 30 ? wid_h : wid_h * wid_h / (ed / 1.4);
 		double e_w = ed < 30 ? 220 : 220 * 220 / (ed / 1.7);
 
-		if (action_keys && abs((ex + ey) - (px + py)) < 800) {
+		if (action_keys == 1 && abs((ex + ey) - (px + py)) < 800) {
 			Entity *exit_action = yeGet(rc, "exit_action");
 			int idx = (*e)[EXIT_IDX];
 
