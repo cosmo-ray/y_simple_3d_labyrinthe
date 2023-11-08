@@ -316,7 +316,7 @@ static void print_walls(Entity *rc, int action_keys)
 		int max_size = 500;
 		int min_size = 10;
 		int dist = ywPosDistance(pc_pos, e_pos);
-		if (dist > 8000)
+		if (dist > 7000)
 			continue;
 		int size_xy = 500.0 - 100.0 * (dist / 1000.0);
 		/* printf("size_xy: %f\n", size_xy); */
@@ -344,6 +344,8 @@ static void print_walls(Entity *rc, int action_keys)
 					  // the futher the less high
 					  300
 					  + (20.0 * (dist / 1000.0))
+					  + (dist > 3000 ? (30.0 * (dist / 1000.0)) - 90 : 0)
+					  + (dist > 4000 ? 3 * ((dist - 4000) / 100) : 0)
 			);
 		yePrint(r);
 		yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
