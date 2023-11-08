@@ -340,6 +340,16 @@ static void print_walls(Entity *rc, int action_keys)
 		if (abs(relative_angle) > 45) {
 			continue;
 		}
+		yeAutoFree Entity *e_pcopy = yeCreateCopy(e_pos, NULL, NULL);
+		int skipp = 0;
+		while (ywPosMoveToward2(e_pcopy, pc_pos, 20, 20)) {
+			if (get_case(ywPosX(e_pcopy) / 1000, ywPosY(e_pos) / 1000)) {
+				skipp = 1;
+				break;
+			}
+		}
+		if (skipp)
+			continue;
 		/* wall colision here */
 		Entity *r = y_ssprite_obj(rc, enemy,
 					  enemy_x,
