@@ -203,7 +203,7 @@ static int col_checker(int px, int py, int tpx, int tpy,
 			int ety = exits[case_idx(case_x, case_y)][EXIT_Y];
 
 			int r = yuiLinesRectIntersect(px, py, tpx, tpy, etx, ety,
-						      5, 5, &x, &y, &t);
+						      10, 10, &x, &y, &t);
 			if (r && !exits[case_idx(case_x, case_y)][EXIT_MARK]) {
 				exits[case_idx(case_x, case_y)][EXIT_MARK] = 1;
 				print_stack[print_stack_l].type = FLAG_EXIT;
@@ -327,7 +327,6 @@ static void print_walls(Entity *rc, int action_keys)
 
 		int relative_angle = pj_angle - (ywPosAngle(pc_pos, e_pos) + 180);
 		relative_angle = relative_angle % 360;
-		printf("relative angle 0 of %s: %d\n", e_name, relative_angle);
 		if (relative_angle > 180)
 			relative_angle -= 360;
 		else if (relative_angle < -180)
@@ -338,10 +337,10 @@ static void print_walls(Entity *rc, int action_keys)
 		       relative_angle);
 
 		int enemy_x = (wid_w) - ((relative_angle + 45) * (size_xy + wid_w) / 90) - size_xy / 2;
-		printf("pix x pos: %u\n", enemy_x);
 		if (abs(relative_angle) > 45) {
 			continue;
 		}
+		/* wall colision here */
 		Entity *r = y_ssprite_obj(rc, enemy,
 					  enemy_x,
 					  // compute botom pos depending on distance,
@@ -351,7 +350,6 @@ static void print_walls(Entity *rc, int action_keys)
 					  + (dist > 3000 ? (30.0 * (dist / 1000.0)) - 90 : 0)
 					  + (dist > 4000 ? 3 * ((dist - 4000) / 100) : 0)
 			);
-		yePrint(r);
 		yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
 		ywCanvasForceSize(r, size);
 	}
