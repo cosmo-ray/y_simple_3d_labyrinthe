@@ -247,6 +247,7 @@ static void print_walls(Entity *rc, int action_keys)
 			       "rgba: 150 150 150 255");
 	ywCanvasMergeRectangle(rc, 0, wid_h / 2, wid_w, wid_h / 2,
 			       "rgba: 100 150 255 255");
+
 	/* For each rays */
 	for (int i = 0; i < wid_w; ++i) {
 		int wall_dist = 0;
@@ -304,42 +305,51 @@ static void print_walls(Entity *rc, int action_keys)
 
 		cur_rad = r0 + FIELD_OF_VIEW * i / wid_h;
 	}
-	double pj_angle = pj_rad * (180 / M_PI);
+
+	int pj_angle = pj_rad * (180 / M_PI) + 180;
+	pj_angle = pj_angle % 360;
+
 	YE_FOREACH(enemies, e) {
-	  Entity *e_pos = yeGet(e, 0);
-	  char *e_name = yeGetStringAt(e, 1);
-	  void *enemy = e_name[0] == 'r' ? &rat : &bguy;
-	  int max_size = 500;
-	  int min_size = 10;
-	  int dist = ywPosDistance(pc_pos, e_pos);
-	  if (dist > 8000)
-	    continue;
-	  int size_xy = 500.0 - 100.0 * (dist / 1000.0);
-	  printf("size_xy: %f\n", size_xy);
+		Entity *e_pos = yeGet(e, 0);
+		const char *e_name = yeGetStringAt(e, 1);
+		void *enemy = e_name[0] == 'r' ? &rat : &bguy;
+		int max_size = 500;
+		int min_size = 10;
+		int dist = ywPosDistance(pc_pos, e_pos);
+		if (dist > 8000)
+			continue;
+		int size_xy = 500.0 - 100.0 * (dist / 1000.0);
+		/* printf("size_xy: %f\n", size_xy); */
 
-	  double relative_angle = pj_angle - ywPosAngle(pc_pos, e_pos);
-	  printf("enemy dist %d enemy-pc angle: %f pc rad: %f pc andle: %f: relative: %f\n",
-		 dist, ywPosAngle(pc_pos, e_pos),
-		 pj_rad, pj_angle,
-		 relative_angle);
+		int relative_angle = pj_angle - (ywPosAngle(pc_pos, e_pos) + 180);
+		relative_angle = relative_angle % 360;
+		printf("relative angle 0 of %s: %d\n", e_name, relative_angle);
+		if (relative_angle > 180)
+			relative_angle -= 360;
+		else if (relative_angle < -180)
+			relative_angle += 360;
+		printf("enemy dist %d enemy-pc angle: %f pc rad: %f pc andle: %d: relative: %d\n",
+		       dist, ywPosAngle(pc_pos, e_pos) + 180,
+		       pj_rad, pj_angle,
+		       relative_angle);
 
-	  int enemy_x = (wid_w) - ((relative_angle + 45) * (size_xy + wid_w) / 90) - size_xy / 2;
-	  printf("pix x pos: %u\n", enemy_x);
-	  if (abs(relative_angle) > 45) {
-	    continue;
-	  }
-	  Entity *r = y_ssprite_obj(rc, enemy,
-				    enemy_x,
-				    // compute botom pos depending on distance,
-				    // the futher the less high
-				    300
-				    + (20.0 * (dist / 1000.0))
-				    );
-	  yePrint(r);
-	  yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
-	  ywCanvasForceSize(r, size);
-
+		int enemy_x = (wid_w) - ((relative_angle + 45) * (size_xy + wid_w) / 90) - size_xy / 2;
+		printf("pix x pos: %u\n", enemy_x);
+		if (abs(relative_angle) > 45) {
+			continue;
+		}
+		Entity *r = y_ssprite_obj(rc, enemy,
+					  enemy_x,
+					  // compute botom pos depending on distance,
+					  // the futher the less high
+					  300
+					  + (20.0 * (dist / 1000.0))
+			);
+		yePrint(r);
+		yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
+		ywCanvasForceSize(r, size);
 	}
+
 
 	for (int i = 0; i < print_stack_l; ++i) {
 		int x = print_stack[i].x;
