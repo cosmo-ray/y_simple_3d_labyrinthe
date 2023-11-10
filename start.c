@@ -342,14 +342,21 @@ static void print_walls(Entity *rc, int action_keys)
 		}
 		yeAutoFree Entity *e_pcopy = yeCreateCopy(e_pos, NULL, NULL);
 		int skipp = 0;
-		while (ywPosMoveToward2(e_pcopy, pc_pos, 20, 20)) {
-			if (get_case(ywPosX(e_pcopy) / 1000, ywPosY(e_pos) / 1000)) {
+		int x_dist = abs(ywPosXDistance(pc_pos, e_pos));
+		int y_dist = abs(ywPosYDistance(pc_pos, e_pos));
+		int advance_x = 1 + x_dist * 20 / dist;
+		int advance_y = 1 + y_dist * 20 / dist;
+
+		while (ywPosMoveToward2(e_pcopy, pc_pos, advance_x, advance_y)) {
+			if (get_case(ywPosX(e_pcopy) / 1000, ywPosY(e_pcopy) / 1000) & FLAG_WALL) {
 				skipp = 1;
 				break;
 			}
 		}
+
 		if (skipp)
 			continue;
+
 		/* wall colision here */
 		Entity *r = y_ssprite_obj(rc, enemy,
 					  enemy_x,
