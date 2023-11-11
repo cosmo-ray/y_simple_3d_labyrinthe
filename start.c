@@ -34,6 +34,8 @@ static void print_walls(Entity *rc, int);
 static int map_w;
 static int map_h;
 
+static int atk_rnd;
+
 static struct {
 	int type;
 	int x;
@@ -420,12 +422,17 @@ static void print_walls(Entity *rc, int action_keys)
 		(*e)[EXIT_MARK] = 0;
 	}
 	if (action_keys || atk_cooldown > 0) {
-		Entity *p = y_ssprite_obj(rc, &punch, 250, 400);
-		yeAutoFree Entity *size = ywSizeCreate(200, 200,
+		if (action_keys && atk_cooldown <= 0) {
+			atk_cooldown = 300000;
+			atk_rnd = yuiRand();
+		}
+
+		Entity *p = y_ssprite_obj(rc, atk_rnd & 1 ? &punch_r : &punch,
+					  atk_rnd & 1 ? 400 : 250,
+					  400);
+		yeAutoFree Entity *size = ywSizeCreate(350, 350,
 						       NULL, NULL);
 		ywCanvasForceSize(p, size);
-		if (action_keys && atk_cooldown <= 0)
-			atk_cooldown = 300000;
 	}
 	atk_cooldown -= ywidGetTurnTimer();
 
