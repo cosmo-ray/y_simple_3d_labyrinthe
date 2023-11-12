@@ -99,6 +99,8 @@ char ux_txt[255];
 #define FLAG_WALL 1
 #define FLAG_EXIT 2
 
+int attack_reach = 900;
+
 #define printf_msg(fmt, args...) do {			\
 	int next_idx = (messages_idx - 1) & 0xf;	\
 							\
@@ -263,6 +265,7 @@ static void print_walls(Entity *rc, int action_keys)
 	/* hiw many rad per pixiel */
 	double r0 = pj_rad - (FIELD_OF_VIEW / 2);
 	double cur_rad = r0;
+	Entity *target_enemy = NULL;
 
 	printf("%d - %d\n", wid_w, wid_h);
 	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h / 2,
@@ -388,6 +391,9 @@ static void print_walls(Entity *rc, int action_keys)
 		yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
 		ywCanvasForceSize(r, size);
 		ywCanvasMergeObj(rc, r);
+		if (dist < attack_reach && abs(relative_angle) < 25) {
+			target_enemy = e;
+		}
 	}
 
 
@@ -442,7 +448,10 @@ static void print_walls(Entity *rc, int action_keys)
 		if (action_keys && atk_cooldown <= 0) {
 			atk_cooldown = 600000;
 			atk_rnd = yuiRand();
-			printf_msg("PUNCH !!(%d)", yuiRand());
+			printf_msg("PUNCH on %s !",
+				   target_enemy ?
+				   yeGetStringAt(target_enemy, ENEMY_IDX_NAME) :
+				   "Nothing");
 		}
 
 		Entity *p = y_ssprite_obj(rc, atk_rnd & 1 ? &punch_r : &punch,
