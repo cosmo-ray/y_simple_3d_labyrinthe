@@ -57,6 +57,10 @@ int atk_cooldown;
 
 #define MAP_MAX_SIZE 2048
 
+#define ENEMY_IDX_POS 0
+#define ENEMY_IDX_NAME 1
+#define ENEMY_IDX_STATS 2
+
 enum {
 	DIR_DOWN,
 	DIR_UP,
@@ -316,8 +320,8 @@ static void print_walls(Entity *rc, int action_keys)
 	pj_angle = pj_angle % 360;
 
 	YE_FOREACH(enemies, e) {
-		Entity *e_pos = yeGet(e, 0);
-		const char *e_name = yeGetStringAt(e, 1);
+		Entity *e_pos = yeGet(e, ENEMY_IDX_POS);
+		const char *e_name = yeGetStringAt(e, ENEMY_IDX_NAME);
 		void *enemy = e_name[0] == 'r' ? &rat : &bguy;
 		int max_size = 500;
 		int min_size = 10;
@@ -371,6 +375,7 @@ static void print_walls(Entity *rc, int action_keys)
 			);
 		yeAutoFree Entity *size = ywSizeCreate(size_xy, size_xy, NULL, NULL);
 		ywCanvasForceSize(r, size);
+		ywCanvasMergeObj(rc, r);
 	}
 
 
@@ -417,7 +422,7 @@ static void print_walls(Entity *rc, int action_keys)
 		yeAutoFree Entity *size = ywSizeCreate(e_w, e_h,
 						       NULL, NULL);
 		ywCanvasForceSize(lad, size);
-
+		ywCanvasMergeObj(rc, lad);
 
 		(*e)[EXIT_MARK] = 0;
 	}
@@ -428,8 +433,8 @@ static void print_walls(Entity *rc, int action_keys)
 		}
 
 		Entity *p = y_ssprite_obj(rc, atk_rnd & 1 ? &punch_r : &punch,
-					  atk_rnd & 1 ? 400 : 250,
-					  400);
+					  atk_rnd & 1 ? 600 : 250,
+					  wid_h - 150 - 350);
 		yeAutoFree Entity *size = ywSizeCreate(350, 350,
 						       NULL, NULL);
 		ywCanvasForceSize(p, size);
@@ -437,6 +442,14 @@ static void print_walls(Entity *rc, int action_keys)
 	atk_cooldown -= ywidGetTurnTimer();
 
 out:
+
+	/* Print UX, could be in another function */
+	ywCanvasMergeRectangle(rc, 0, 0, 90, wid_h - 150,
+			       "rgba: 100 100 100 50");
+	ywCanvasMergeRectangle(rc, 0, wid_h - 150,
+			       wid_w, 150,
+			       "rgba: 200 200 200 100");
+
 	print_stack_l = 0;
 }
 
@@ -461,6 +474,7 @@ void *rc_init(int nbArgs, void **args)
 	int start_x = START_X, start_y = START_Y;
 	const char *in = yeGetStringAt(rc, "entry");
 	int nb_exits;
+	Entity *enemies = yeGet(rc, "enemies");
 
 	if (!map_e)
 		FAIL("no map");
@@ -525,6 +539,23 @@ void *rc_init(int nbArgs, void **args)
 		rc.px = start_x;
 		rc.py = start_y;
 		rc.mergable = 1;
+	}
+
+	YE_FOREACH(enemies, e) {
+		Entity *e_stats = yeGet(e, ENEMY_IDX_STATS);
+		const char *name = yeGetStringAt(e, ENEMY_IDX_NAME);
+		int max_life = 10;
+		if (!e_stats)
+			e_stats = yeCreateArray(e, e_stats);
+		if (yeType(e_stats) != YARRAY) {
+			DPRINT_ERR("enemy stats not an array !\n");
+			return NULL;
+		}
+		//yeTryCreateInt(max_life, e_stats, "max_life");
+		yeReCreateInt(max_life, e_stats, "life");
+		Entity *stats = yeTryCreateArray(e_stats, "stats");
+		yeTryCreateInt(2, stats, "strength");
+		yeTryCreateInt(1, stats, "agility");
 	}
 
 	y_ssprites_init();
