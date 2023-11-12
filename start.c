@@ -91,8 +91,20 @@ static int dir_y_threshod[] = {
 uint32_t map[MAP_MAX_SIZE];
 static int exits[MAP_MAX_SIZE][EXIT_SIZE];
 
+unsigned int messages_idx;
+char messages[0xf + 1][255];
+
+char ux_txt[255];
+
 #define FLAG_WALL 1
 #define FLAG_EXIT 2
+
+#define printf_msg(fmt, args...) do {			\
+	int next_idx = (messages_idx - 1) & 0xf;	\
+							\
+	snprintf(messages[next_idx], 255, fmt, args);	\
+	messages_idx = next_idx;			\
+	} while(0)					\
 
 static inline int case_idx(int x, int y)
 {
@@ -426,10 +438,11 @@ static void print_walls(Entity *rc, int action_keys)
 
 		(*e)[EXIT_MARK] = 0;
 	}
-	if (action_keys || atk_cooldown > 0) {
+	if ((action_keys && atk_cooldown <= 0) || atk_cooldown > 300000) {
 		if (action_keys && atk_cooldown <= 0) {
-			atk_cooldown = 300000;
+			atk_cooldown = 600000;
 			atk_rnd = yuiRand();
+			printf_msg("PUNCH !!(%d)", yuiRand());
 		}
 
 		Entity *p = y_ssprite_obj(rc, atk_rnd & 1 ? &punch_r : &punch,
@@ -444,11 +457,54 @@ static void print_walls(Entity *rc, int action_keys)
 out:
 
 	/* Print UX, could be in another function */
-	ywCanvasMergeRectangle(rc, 0, 0, 90, wid_h - 150,
-			       "rgba: 100 100 100 50");
+
+	/* characters info UX */
+	{
+		const char *name = yeGetStringAt(yeGet(rc, "pc"), "name");
+		ywCanvasMergeRectangle(rc, 0, 0, 110, wid_h - 150,
+				       "rgba: 100 100 100 50");
+
+		int y_txt = 5;
+		ywCanvasMergeText(rc, y_txt, 0, 70, 30,
+				  name ? name : "<CHAR NAME>");
+		y_txt += 20;
+
+		snprintf(ux_txt, 255, "HP: %d/%d", yeGetIntAt(yeGet(rc, "pc"), "life"),
+			yeGetIntAt(yeGet(rc, "pc"), "max_life"));
+		ux_txt[254] = 0;
+		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
+		y_txt += 20;
+
+		snprintf(ux_txt, 255, "Can ATK: %s", atk_cooldown <= 0 ? "OK" : "NO");
+		ux_txt[254] = 0;
+		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
+		y_txt += 20;
+
+		snprintf(ux_txt, 255, "DMG: 1-%d", 1 + yeGetIntAt(yeGet(yeGet(rc, "pc"), "stats"), "strength"));
+		ux_txt[254] = 0;
+		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
+		y_txt += 20;
+
+		snprintf(ux_txt, 255, "Esquive: %d%%", yeGetIntAt(yeGet(yeGet(rc, "pc"), "stats"), "agility") * 2);
+		ux_txt[254] = 0;
+		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
+		y_txt += 20;
+		y_txt += 10;
+
+		ywCanvasMergeRectangle(rc, 0, y_txt, 110, 5,
+				       "rgba: 200 200 200 200");
+
+	}
+
+
+	/* Game message UX */
 	ywCanvasMergeRectangle(rc, 0, wid_h - 150,
 			       wid_w, 150,
 			       "rgba: 200 200 200 100");
+
+	for (int i = 0; i < 8; ++i) {
+		ywCanvasMergeText(rc, 5, wid_h - 140 + (i * 18), wid_h - 20, 20, messages[(messages_idx + i ) & 0xf]);
+	}
 
 	print_stack_l = 0;
 }
@@ -589,6 +645,12 @@ void *mod_init(int nbArg, void **args)
 			"####...#",
 			"########"
 			];
+		mod.test_rc.pc = {};
+		mod.test_rc.pc.life = 10;
+		mod.test_rc.pc.max_life = 10;
+		mod.test_rc.pc.stats = {};
+		mod.test_rc.pc.stats.strength = 3;
+		mod.test_rc.pc.stats.agility = 2;
 		mod.test_rc.exits = {};
 		mod.test_rc.exits[0] = [1200, 1700];
 		mod.test_rc.enemies = {};
