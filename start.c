@@ -60,6 +60,9 @@ int atk_cooldown;
 #define ENEMY_IDX_POS 0
 #define ENEMY_IDX_NAME 1
 #define ENEMY_IDX_STATS 2
+#define ENEMY_IDX_ATK_TIMER 3
+
+#define ENEMY_ATK_COOLDOWN 800000
 
 enum {
 	DIR_DOWN,
@@ -99,7 +102,7 @@ char ux_txt[255];
 #define FLAG_WALL 1
 #define FLAG_EXIT 2
 
-int attack_reach = 900;
+int attack_reach = 1100;
 
 #define printf_msg(fmt, args...) do {			\
 	int next_idx = (messages_idx - 1) & 0xf;	\
@@ -266,6 +269,7 @@ static void print_walls(Entity *rc, int action_keys)
 	double r0 = pj_rad - (FIELD_OF_VIEW / 2);
 	double cur_rad = r0;
 	Entity *target_enemy = NULL;
+	int turn_timer = ywidGetTurnTimer();
 
 	printf("%d - %d\n", wid_w, wid_h);
 	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h / 2,
@@ -336,6 +340,7 @@ static void print_walls(Entity *rc, int action_keys)
 
 	YE_FOREACH(enemies, e) {
 		Entity *e_pos = yeGet(e, ENEMY_IDX_POS);
+		Entity *e_atk_timer = yeGet(e, ENEMY_IDX_ATK_TIMER);
 		const char *e_name = yeGetStringAt(e, ENEMY_IDX_NAME);
 		void *enemy = e_name[0] == 'r' ? &rat : &bguy;
 		int max_size = 500;
@@ -343,6 +348,13 @@ static void print_walls(Entity *rc, int action_keys)
 		int dist = ywPosDistance(pc_pos, e_pos);
 		if (dist > 7000)
 			continue;
+		yeAdd(e_atk_timer, -turn_timer);
+
+		if (dist < attack_reach && yeGetIntAt(e, ENEMY_IDX_ATK_TIMER) <= 0) {
+			yeSetAt(e, ENEMY_IDX_ATK_TIMER, ENEMY_ATK_COOLDOWN);
+			printf_msg("%s atk you", e_name);
+		}
+
 		int size_xy = 500.0 - 100.0 * (dist / 1000.0);
 		/* printf("size_xy: %f\n", size_xy); */
 
@@ -461,7 +473,7 @@ static void print_walls(Entity *rc, int action_keys)
 						       NULL, NULL);
 		ywCanvasForceSize(p, size);
 	}
-	atk_cooldown -= ywidGetTurnTimer();
+	atk_cooldown -= turn_timer;
 
 out:
 
@@ -621,6 +633,7 @@ void *rc_init(int nbArgs, void **args)
 		Entity *stats = yeTryCreateArray(e_stats, "stats");
 		yeTryCreateInt(2, stats, "strength");
 		yeTryCreateInt(1, stats, "agility");
+		yeCreateIntAt(0, e, "atk_timer", ENEMY_IDX_ATK_TIMER);
 	}
 
 	y_ssprites_init();
