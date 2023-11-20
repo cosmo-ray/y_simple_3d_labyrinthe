@@ -270,6 +270,7 @@ static void print_walls(Entity *rc, int action_keys)
 	double cur_rad = r0;
 	Entity *target_enemy = NULL;
 	int turn_timer = ywidGetTurnTimer();
+	int pc_esquive = yeGetIntAt(yeGet(yeGet(rc, "pc"), "stats"), "agility") * 2;
 
 	printf("%d - %d\n", wid_w, wid_h);
 	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h / 2,
@@ -351,8 +352,19 @@ static void print_walls(Entity *rc, int action_keys)
 		yeAdd(e_atk_timer, -turn_timer);
 
 		if (dist < attack_reach && yeGetIntAt(e, ENEMY_IDX_ATK_TIMER) <= 0) {
+			Entity *stats = yeGet(e, ENEMY_IDX_STATS);
+			int max_atk = yeGetIntAt(yeGet(stats, "stats"), "strength");
+			int dmg = yuiRand() % max_atk + 1;
+			int miss = (yuiRand() % 100) < pc_esquive;
 			yeSetAt(e, ENEMY_IDX_ATK_TIMER, ENEMY_ATK_COOLDOWN);
-			printf_msg("%s atk you", e_name);
+			printf("stats:\n");
+			yePrint(stats);
+			if (miss)
+				printf_msg("%s miss", e_name, max_atk, dmg);
+			else {
+				yeAddAt(yeGet(rc, "pc"), "life", -dmg);
+				printf_msg("%s atk you for 1-%d, deal: %d", e_name, max_atk, dmg);
+			}
 		}
 
 		int size_xy = 500.0 - 100.0 * (dist / 1000.0);
@@ -506,7 +518,7 @@ out:
 		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
 		y_txt += 20;
 
-		snprintf(ux_txt, 255, "Esquive: %d%%", yeGetIntAt(yeGet(yeGet(rc, "pc"), "stats"), "agility") * 2);
+		snprintf(ux_txt, 255, "Esquive: %d%%", pc_esquive);
 		ux_txt[254] = 0;
 		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
 		y_txt += 20;
