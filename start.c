@@ -270,7 +270,8 @@ static void print_walls(Entity *rc, int action_keys)
 	double cur_rad = r0;
 	Entity *target_enemy = NULL;
 	int turn_timer = ywidGetTurnTimer();
-	int pc_esquive = yeGetIntAt(yeGet(yeGet(rc, "pc"), "stats"), "agility") * 2;
+	Entity *pc_e = yeGet(rc, "pc");
+	int pc_esquive = yeGetIntAt(yeGet(pc_e, "stats"), "agility") * 2;
 
 	printf("%d - %d\n", wid_w, wid_h);
 	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h / 2,
@@ -362,8 +363,16 @@ static void print_walls(Entity *rc, int action_keys)
 			if (miss)
 				printf_msg("%s miss", e_name, max_atk, dmg);
 			else {
-				yeAddAt(yeGet(rc, "pc"), "life", -dmg);
+				yeAddAt(pc_e, "life", -dmg);
 				printf_msg("%s atk you for 1-%d, deal: %d", e_name, max_atk, dmg);
+				if (yeGetIntAt(pc_e, "life") <= 0) {
+					Entity *die_action = yeGet(rc, "die");
+
+					if (die_action)
+						yesCall(die_action, rc);
+					else
+						ygTerminate();
+				}
 			}
 		}
 
@@ -493,7 +502,7 @@ out:
 
 	/* characters info UX */
 	{
-		const char *name = yeGetStringAt(yeGet(rc, "pc"), "name");
+		const char *name = yeGetStringAt(pc_e, "name");
 		ywCanvasMergeRectangle(rc, 0, 0, 110, wid_h - 150,
 				       "rgba: 100 100 100 50");
 
@@ -502,8 +511,8 @@ out:
 				  name ? name : "<CHAR NAME>");
 		y_txt += 20;
 
-		snprintf(ux_txt, 255, "HP: %d/%d", yeGetIntAt(yeGet(rc, "pc"), "life"),
-			yeGetIntAt(yeGet(rc, "pc"), "max_life"));
+		snprintf(ux_txt, 255, "HP: %d/%d", yeGetIntAt(pc_e, "life"),
+			yeGetIntAt(pc_e, "max_life"));
 		ux_txt[254] = 0;
 		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
 		y_txt += 20;
@@ -513,7 +522,7 @@ out:
 		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
 		y_txt += 20;
 
-		snprintf(ux_txt, 255, "DMG: 1-%d", 1 + yeGetIntAt(yeGet(yeGet(rc, "pc"), "stats"), "strength"));
+		snprintf(ux_txt, 255, "DMG: 1-%d", 1 + yeGetIntAt(yeGet(pc_e, "stats"), "strength"));
 		ux_txt[254] = 0;
 		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
 		y_txt += 20;
