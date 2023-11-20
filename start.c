@@ -348,12 +348,24 @@ static void print_walls(Entity *rc, int action_keys)
 		int max_size = 500;
 		int min_size = 10;
 		int dist = ywPosDistance(pc_pos, e_pos);
+		Entity *stats = yeGet(e, ENEMY_IDX_STATS);
+		int life = yeGetIntAt(stats, 0);
 		if (dist > 7000)
 			continue;
 		yeAdd(e_atk_timer, -turn_timer);
+		if (life < 3) {
+			if (enemy == &rat)
+				enemy = &rat_hurt_2;
+			else if (enemy == &bguy)
+				enemy = &bguy_hurt_2;
+		} else if (life < 8) {
+			if (enemy == &rat)
+				enemy = &rat_hurt_1;
+			else if (enemy == &bguy)
+				enemy = &bguy_hurt_1;
+		}
 
 		if (dist < attack_reach && yeGetIntAt(e, ENEMY_IDX_ATK_TIMER) <= 0) {
-			Entity *stats = yeGet(e, ENEMY_IDX_STATS);
 			int max_atk = yeGetIntAt(yeGet(stats, "stats"), "strength");
 			int dmg = yuiRand() % max_atk + 1;
 			int miss = (yuiRand() % 100) < pc_esquive;
@@ -479,12 +491,17 @@ static void print_walls(Entity *rc, int action_keys)
 	}
 	if ((action_keys && atk_cooldown <= 0) || atk_cooldown > 300000) {
 		if (action_keys && atk_cooldown <= 0) {
+			Entity *enemy_stat = yeGet(target_enemy, ENEMY_IDX_STATS);
 			atk_cooldown = 600000;
 			atk_rnd = yuiRand();
 			printf_msg("PUNCH on %s !",
 				   target_enemy ?
 				   yeGetStringAt(target_enemy, ENEMY_IDX_NAME) :
 				   "Nothing");
+			yeAddAt(enemy_stat, "life", -4);
+			if (yeGetIntAt(enemy_stat, "life") < 1) {
+				yeRemoveChild(enemies, target_enemy);
+			}
 		}
 
 		Entity *p = y_ssprite_obj(rc, atk_rnd & 1 ? &punch_r : &punch,
