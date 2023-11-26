@@ -271,9 +271,9 @@ static void print_walls(Entity *rc, int action_keys)
 	Entity *target_enemy = NULL;
 	int turn_timer = ywidGetTurnTimer();
 	Entity *pc_e = yeGet(rc, "pc");
-	int pc_esquive = yeGetIntAt(yeGet(pc_e, "stats"), "agility") * 2;
+	Entity *pc_stats = yeGet(pc_e, "stats");
+	int pc_esquive = yeGetIntAt(pc_stats, "agility") * 2;
 
-	printf("%d - %d\n", wid_w, wid_h);
 	ywCanvasMergeRectangle(rc, 0, 0, wid_w, wid_h / 2,
 			       "rgba: 150 150 150 255");
 	ywCanvasMergeRectangle(rc, 0, wid_h / 2, wid_w, wid_h / 2,
@@ -389,7 +389,6 @@ static void print_walls(Entity *rc, int action_keys)
 		}
 
 		int size_xy = 500.0 - 100.0 * (dist / 1000.0);
-		/* printf("size_xy: %f\n", size_xy); */
 
 		int relative_angle = pj_angle - (ywPosAngle(pc_pos, e_pos) + 180);
 		relative_angle = relative_angle % 360;
@@ -455,12 +454,6 @@ static void print_walls(Entity *rc, int action_keys)
 			Entity *exit_action = yeGet(rc, "exit_action");
 			int idx = (*e)[EXIT_IDX];
 
-			/* printf("ACTION ON EXIT %p !!!!\n", yeGet(rc, "exits")); */
-			/* printf("ACTION ON EXIT %s %d !!!!\n", */
-			/*        yeGetStringAt(yeGet(yeGet(rc, "exits"), idx), */
-			/* 		     EXIT_NAME + 1), */
-			/*        yeGetIntAt(yeGet(yeGet(rc, "exits"), idx), */
-			/* 		  EXIT_NAME + 2)); */
 			if (exit_action) {
 				yesCall(exit_action, rc, NULL,
 					yeGetStringAt(yeGet(yeGet(rc, "exits"), idx),
@@ -472,14 +465,6 @@ static void print_walls(Entity *rc, int action_keys)
 			}
 			goto out;
 		}
-		/* printf("ELEM %d IN PRINT STACK\n", i); */
-		/* printf("%d %d %d %d\n", (*e)[0], (*e)[1], (*e)[2], (*e)[3]); */
-		/* printf("dist: %d %f\n", yuiPointsDist(px, py, ex, ey), e_h); */
-		/* ywCanvasMergeRectangle(rc, x, */
-		/* 		       wid_h < e_h ? 0 : */
-		/* 		       (wid_h - e_h) / 2, // x, y */
-		/* 		       e_w, e_h, */
-		/* 		       "rgba: 127 127 127 255"); */
 		Entity *lad = y_ssprite_obj(rc, &ladder, x, wid_h < e_h ? 0 :
 					    (wid_h - e_h) / 2);
 		yeAutoFree Entity *size = ywSizeCreate(e_w, e_h,
@@ -493,12 +478,12 @@ static void print_walls(Entity *rc, int action_keys)
 		if (action_keys && atk_cooldown <= 0) {
 			Entity *enemy_stat = yeGet(target_enemy, ENEMY_IDX_STATS);
 			atk_cooldown = 600000;
-			atk_rnd = yuiRand();
-			printf_msg("PUNCH on %s !",
+			atk_rnd = 1 + yuiRand() % yeGetIntAt(pc_stats, "strength");
+			printf_msg("PUNCH on %s for %d dmg!",
 				   target_enemy ?
 				   yeGetStringAt(target_enemy, ENEMY_IDX_NAME) :
-				   "Nothing");
-			yeAddAt(enemy_stat, "life", -4);
+				   "Nothing", atk_rnd);
+			yeAddAt(enemy_stat, "life", -atk_rnd);
 			if (yeGetIntAt(enemy_stat, "life") < 1) {
 				yeRemoveChild(enemies, target_enemy);
 			}
@@ -539,7 +524,7 @@ out:
 		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
 		y_txt += 20;
 
-		snprintf(ux_txt, 255, "DMG: 1-%d", 1 + yeGetIntAt(yeGet(pc_e, "stats"), "strength"));
+		snprintf(ux_txt, 255, "DMG: 1-%d", 1 + yeGetIntAt(pc_stats, "strength"));
 		ux_txt[254] = 0;
 		ywCanvasMergeText(rc, 10, y_txt, 70, 30, ux_txt);
 		y_txt += 20;
