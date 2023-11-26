@@ -61,6 +61,7 @@ int atk_cooldown;
 #define ENEMY_IDX_NAME 1
 #define ENEMY_IDX_STATS 2
 #define ENEMY_IDX_ATK_TIMER 3
+#define ENEMY_IDX_MV_TIMER 4
 
 #define ENEMY_ATK_COOLDOWN 800000
 
@@ -422,6 +423,12 @@ static void print_walls(Entity *rc, int action_keys)
 		if (skipp)
 			continue;
 
+		if (dist > 700 && yeGetIntAt(e, ENEMY_IDX_MV_TIMER) <= 0) {
+			ywPosMoveToward2(e_pos, pc_pos, advance_x * 6, advance_y * 6);
+			yeSetAt(e, ENEMY_IDX_MV_TIMER, ENEMY_ATK_COOLDOWN / 2);
+		} else if (yeGetIntAt(e, ENEMY_IDX_MV_TIMER) >= 0) {
+			yeAddAt(e, ENEMY_IDX_MV_TIMER, -turn_timer);
+		}
 		/* wall colision here */
 		Entity *r = y_ssprite_obj(rc, enemy,
 					  enemy_x,
@@ -657,6 +664,7 @@ void *rc_init(int nbArgs, void **args)
 		yeTryCreateInt(2, stats, "strength");
 		yeTryCreateInt(1, stats, "agility");
 		yeCreateIntAt(0, e, "atk_timer", ENEMY_IDX_ATK_TIMER);
+		yeCreateIntAt(0, e, "mv_timer", ENEMY_IDX_MV_TIMER);
 	}
 
 	y_ssprites_init();
