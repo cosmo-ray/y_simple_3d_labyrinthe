@@ -108,6 +108,7 @@ int attack_reach = 1100;
 #define printf_msg(fmt, args...) do {			\
 	int next_idx = (messages_idx - 1) & 0xf;	\
 							\
+	printf("printf_mgs: "fmt"\n", args);		\
 	snprintf(messages[next_idx], 255, fmt, args);	\
 	messages_idx = next_idx;			\
 	} while(0)					\
@@ -485,14 +486,14 @@ static void print_walls(Entity *rc, int action_keys)
 		if (action_keys && atk_cooldown <= 0) {
 			Entity *enemy_stat = yeGet(target_enemy, ENEMY_IDX_STATS);
 			atk_cooldown = 600000;
-			atk_rnd = 1 + yuiRand() % yeGetIntAt(pc_stats, "strength");
+			atk_rnd = 1 + yuiRand() % (yeGetIntAt(pc_stats, "strength") + 1);
 			printf_msg("PUNCH on %s for %d dmg!",
 				   target_enemy ?
 				   yeGetStringAt(target_enemy, ENEMY_IDX_NAME) :
 				   "Nothing", atk_rnd);
 			yeAddAt(enemy_stat, "life", -atk_rnd);
 			if (yeGetIntAt(enemy_stat, "life") < 1) {
-				yeRemoveChild(enemies, target_enemy);
+				yeTryRemoveChild(enemies, target_enemy);
 			}
 		}
 
@@ -597,7 +598,7 @@ void *rc_init(int nbArgs, void **args)
 
 	if (map_w * map_h > MAP_MAX_SIZE)
 		FAIL("map too big");
-	
+
 	for (int i = 0; i < map_h; ++i) {
 		const char *line = yeGetStringAt(map_e, i);
 
