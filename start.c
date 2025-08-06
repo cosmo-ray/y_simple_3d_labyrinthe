@@ -151,13 +151,15 @@ static void mvpj(Entity *rc, int xadd, int yadd)
 		yeAddAt(rc, "py", y);
 }
 
+static int yadd, xadd;
+static double rad_add;
+
 void *rc_action(int nbArgs, void **args)
 {
 	Entity *rc = args[0];
 	Entity *events = args[1];
 	int action = 0;
 	int action_keys = 0;
-	int xadd = 0, yadd = 0;
 
 	if (yevIsKeyDown(events, Y_ESC_KEY)) {
 		Entity *quit_action = yeGet(rc, "quit");
@@ -178,15 +180,21 @@ void *rc_action(int nbArgs, void **args)
 		printf("ACTION KEY ENTER !!!!");
 		action_keys = 2;
 	}
+
+	if (yevIsKeyUp(events, 'q') || yevIsKeyUp(events, 'a') ||
+	    yevIsKeyUp(events, 'e') || yevIsKeyUp(events, 'd')) {
+		rad_add = 0;
+	}
+
 	if (yevIsKeyDown(events, 'q') ||
 	    yevIsKeyDown(events, 'a')) {
-		pj_rad -= RAD_TURN_VAL;
-		action = 1;
+		rad_add = -RAD_TURN_VAL;
 	} else if (yevIsKeyDown(events, 'e') ||
 		   yevIsKeyDown(events, 'd')) {
-		pj_rad += RAD_TURN_VAL;
-		action = 1;
+		rad_add = RAD_TURN_VAL;
 	}
+
+	pj_rad += rad_add;
 	/* trigo circle is between M_PI and -M_PI */
 	if (pj_rad > M_PI) {
 		pj_rad -= 2 * M_PI;
@@ -194,20 +202,27 @@ void *rc_action(int nbArgs, void **args)
 		pj_rad += 2 * M_PI;
 	}
 
+
+	if (yevIsKeyUp(events, Y_UP_KEY) || yevIsKeyUp(events, 'w') ||
+	    yevIsKeyUp(events, Y_DOWN_KEY) || yevIsKeyUp(events, 's'))
+		yadd = 0;
+
+	if (yevIsKeyUp(events, Y_LEFT_KEY) || yevIsKeyUp(events, Y_RIGHT_KEY))
+		xadd = 0;
+
 	if (yevIsKeyDown(events, Y_UP_KEY) || yevIsKeyDown(events, 'w')) {
 		yadd = -100;
-		action = 1;
 	} else if (yevIsKeyDown(events, Y_DOWN_KEY) || yevIsKeyDown(events, 's')) {
 		yadd = 100;
-		action = 1;
 	}
 	if (yevIsKeyDown(events, Y_LEFT_KEY)) {
 		xadd = -100;
-		action = 1;
 	} else if (yevIsKeyDown(events, Y_RIGHT_KEY)) {
 		xadd = 100;
-		action = 1;
 	}
+
+	if (yadd || xadd || rad_add)
+		action = 1;
 	print_walls(rc, action_keys);
 	if (action)
 		mvpj(rc, xadd, yadd);
